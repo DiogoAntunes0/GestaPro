@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestaPro — Sistema de Pedidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="script.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════════════════ -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-left">
+    <div>
+      <div class="auth-brand">Gesta<em>Pro</em></div>
+      <p class="auth-tagline">Gerencie pedidos, produtos e clientes com agilidade. Notificações automáticas por e-mail incluídas.</p>
+      <div class="auth-visual">
+        <div class="auth-feature">
+          <div class="auth-feature-icon" style="background: var(--accent-glow);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          </div>
+          <div class="auth-feature-text">
+            <div class="t1">Gestão de Pedidos</div>
+            <div class="t2">Crie e acompanhe pedidos em tempo real</div>
+          </div>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon" style="background: var(--green-bg);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <div class="auth-feature-text">
+            <div class="t1">Controle de Estoque</div>
+            <div class="t2">Atualização automática a cada venda</div>
+          </div>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon" style="background: var(--amber-bg);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </div>
+          <div class="auth-feature-text">
+            <div class="t1">E-mail Automático</div>
+            <div class="t2">Confirmação sobre seus pedidos via E-mail. </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <!-- LOGIN FORM -->
+    <div class="auth-box" id="loginForm">
+      <div class="auth-title">Entrar</div>
+      <div class="auth-sub">Acesse sua conta para continuar</div>
+      <div id="loginError"></div>
+      <div class="form-grid" style="gap:14px">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="loginEmail" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px;" onclick="doLogin()">Entrar</button>
+      <div class="auth-divider">ou</div>
+      <div class="auth-switch">Não tem conta? <a onclick="showRegister()">Cadastre-se grátis</a></div>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="auth-box" id="registerForm" style="display:none">
+      <div class="auth-title">Criar conta</div>
+      <div class="auth-sub">Preencha os dados para se cadastrar</div>
+      <div id="registerError"></div>
+      <div class="form-grid" style="gap:14px">
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input type="text" id="regNome" placeholder="João da Silva">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="regEmail" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label>CPF</label>
+          <input type="text" id="regCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input type="password" id="regSenha" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label>Confirmar senha</label>
+          <input type="password" id="regConfirm" placeholder="Repita a senha">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px;" onclick="doRegister()">Criar conta</button>
+      <div class="auth-switch" style="margin-top:14px">Já tem conta? <a onclick="showLogin()">Entrar</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════════════ -->
+<div class="app hidden" id="mainApp">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">Gesta<span>Pro</span></div>
+      <div class="tagline">Sistema de Pedidos</div>
+    </div>
+    <div class="nav">
+      <div class="nav-section">
+        <div class="nav-label">Principal</div>
+        <div class="nav-item active" onclick="goPage('dashboard', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" onclick="goPage('pedidos', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Pedidos
+        </div>
+        <div class="nav-item" onclick="goPage('produtos', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          Produtos
+        </div>
+        <div class="nav-item" onclick="goPage('clientes', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Clientes
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-label">Ações</div>
+        <div class="nav-item" onclick="openModal('modalNovoPedido')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+          Novo Pedido
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-chip" onclick="doLogout()">
+        <div class="avatar" id="avatarInit">JD</div>
+        <div class="user-info">
+          <div class="name" id="userNameDisplay">João da Silva</div>
+          <div class="role">Sair da conta</div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openModal('modalNovoPedido')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Novo Pedido
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── DASHBOARD ── -->
+      <div data-page="dashboard" class="active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:var(--accent-glow)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg>
+            </div>
+            <div class="stat-label">Total de Pedidos</div>
+            <div class="stat-value" id="statPedidos">0</div>
+            <div class="stat-delta up">↑ todos os status</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:var(--green-bg)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            </div>
+            <div class="stat-label">Receita Total</div>
+            <div class="stat-value" id="statReceita">R$ 0</div>
+            <div class="stat-delta up">↑ pedidos pagos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:var(--amber-bg)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <div class="stat-label">Produtos</div>
+            <div class="stat-value" id="statProdutos">0</div>
+            <div class="stat-delta">no catálogo</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(62,207,142,0.08)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div class="stat-label">Clientes</div>
+            <div class="stat-value" id="statClientes">0</div>
+            <div class="stat-delta">cadastrados</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div class="card">
+            <div class="card-title">Últimos pedidos</div>
+            <div class="card-sub" style="margin-bottom:16px">Pedidos mais recentes</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Cliente</th><th>Status</th><th>Total</th></tr></thead>
+                <tbody id="dashRecentOrders">
+                  <tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">Nenhum pedido ainda</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Produtos mais vendidos</div>
+            <div class="card-sub" style="margin-bottom:16px">Por quantidade de pedidos</div>
+            <div id="topProdutos" style="display:flex;flex-direction:column;gap:10px">
+              <div style="color:var(--text3);font-size:13px;text-align:center;padding:24px">Nenhum dado ainda</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PEDIDOS ── -->
+      <div data-page="pedidos">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <h2 style="font-size:20px;font-weight:500">Pedidos</h2>
+            <p style="color:var(--text3);font-size:13px">Gerencie todos os pedidos do sistema</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modalNovoPedido')">+ Novo Pedido</button>
+        </div>
+        <div class="card">
+          <div class="tabs">
+            <div class="tab active" onclick="filterPedidos('TODOS', this)">Todos</div>
+            <div class="tab" onclick="filterPedidos('AGUARDANDO_PAGAMENTO', this)">Aguardando</div>
+            <div class="tab" onclick="filterPedidos('PAGO', this)">Pagos</div>
+            <div class="tab" onclick="filterPedidos('CANCELADO', this)">Cancelados</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Cliente</th><th>Data</th><th>Itens</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody id="tabelaPedidos">
+                <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── PRODUTOS ── -->
+      <div data-page="produtos">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <h2 style="font-size:20px;font-weight:500">Produtos</h2>
+            <p style="color:var(--text3);font-size:13px">Catálogo e controle de estoque</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modalNovoProduto')">+ Novo Produto</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nome</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody id="tabelaProdutos">
+                <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CLIENTES ── -->
+      <div data-page="clientes">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <h2 style="font-size:20px;font-weight:500">Clientes</h2>
+            <p style="color:var(--text3);font-size:13px">Cadastro de clientes</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modalNovoCliente')">+ Novo Cliente</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Nome</th><th>E-mail</th><th>CPF</th><th>Cadastro</th><th>Ações</th></tr></thead>
+              <tbody id="tabelaClientes">
+                <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════ -->
+
+<!-- Modal: Novo Pedido -->
+<div class="modal-overlay" id="modalNovoPedido">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">Novo Pedido</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalNovoPedido')">✕</button>
+    </div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Cliente</label>
+      <select id="pedidoCliente">
+        <option value="">Selecione um cliente...</option>
+      </select>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em">Adicionar Item</div>
+      <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end">
+        <div class="form-group" style="margin:0">
+          <label>Produto</label>
+          <select id="pedidoProduto"></select>
+        </div>
+        <div class="form-group" style="margin:0;width:80px">
+          <label>Qtd</label>
+          <input type="number" id="pedidoQtd" min="1" value="1" style="width:80px">
+        </div>
+        <button class="btn btn-ghost" onclick="addCartItem()">Adicionar</button>
+      </div>
+    </div>
+    <div id="cartItems"></div>
+    <div class="cart-summary">
+      <div class="cart-total"><span>Total</span><span id="cartTotal">R$ 0,00</span></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('modalNovoPedido')">Cancelar</button>
+      <button class="btn btn-primary" onclick="criarPedido()">Criar Pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo Produto -->
+<div class="modal-overlay" id="modalNovoProduto">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Novo Produto</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalNovoProduto')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nome do produto</label>
+        <input type="text" id="prodNome" placeholder="Ex: Teclado Mecânico">
+      </div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>Preço (R$)</label>
+          <input type="number" id="prodPreco" placeholder="0,00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Estoque inicial</label>
+          <input type="number" id="prodEstoque" placeholder="0" min="0">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('modalNovoProduto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="criarProduto()">Salvar Produto</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo Cliente -->
+<div class="modal-overlay" id="modalNovoCliente">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Novo Cliente</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalNovoCliente')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nome completo</label>
+        <input type="text" id="cliNome" placeholder="João da Silva">
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="cliEmail" placeholder="joao@email.com">
+      </div>
+      <div class="form-group">
+        <label>CPF</label>
+        <input type="text" id="cliCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('modalNovoCliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="criarCliente()">Salvar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+</body>
+</html>
