@@ -3,9 +3,10 @@ package com.example.CoreCommerce.service;
 import com.example.CoreCommerce.dto.UsuarioDTO;
 import com.example.CoreCommerce.exception.CpfExistente;
 import com.example.CoreCommerce.exception.EmailExistente;
+import com.example.CoreCommerce.exception.EmailNaoEncontrado;
+import com.example.CoreCommerce.exception.SenhaNaoEncontrada;
 import com.example.CoreCommerce.model.Usuario;
 import com.example.CoreCommerce.repository.UsuarioRepository;
-import jakarta.validation.constraints.Email;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,11 +50,11 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findByEmail(usuarioDTO.email());
 
         if (!usuarioRepository.existsByEmail(usuarioDTO.email())) {
-          throw new NullPointerException("E-mail inexsistente, cadastre-se ou tente novamente!");
+          throw new EmailNaoEncontrado();
         }
 
         if(!usuarioDTO.senha().equalsIgnoreCase(usuario.getSenha())){
-            throw new RuntimeException("Senha incorreta, tente novamente!");
+            throw new SenhaNaoEncontrada();
         }
 
         return new UsuarioDTO(

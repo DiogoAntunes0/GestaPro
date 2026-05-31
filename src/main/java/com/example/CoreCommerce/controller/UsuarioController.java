@@ -2,7 +2,6 @@ package com.example.CoreCommerce.controller;
 import com.example.CoreCommerce.dto.UsuarioDTO;
 import com.example.CoreCommerce.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
