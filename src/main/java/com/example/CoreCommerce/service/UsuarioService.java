@@ -12,7 +12,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-
 @Service
 public class UsuarioService {
 
@@ -24,6 +23,7 @@ public class UsuarioService {
     //post via front-end
     public UsuarioDTO cadastrar(UsuarioDTO usuarioDTO){
         Usuario usuario = new Usuario();
+        String senhaCriptografada = passwordEncoder.encode(usuarioDTO.senha());
 
         if (usuarioRepository.existsByEmail(usuarioDTO.email())) {
             throw new EmailExistente();
@@ -36,14 +36,15 @@ public class UsuarioService {
         usuario.setNome(usuarioDTO.nome());
         usuario.setEmail(usuarioDTO.email());
         usuario.setCpf(usuarioDTO.cpf());
-        usuario.setSenha(usuarioDTO.senha());
+        usuario.setSenha(senhaCriptografada);
 
         Usuario usuarioSalvo = usuarioRepository.save(usuario);
 
         return new UsuarioDTO(usuarioSalvo.getNome(),
                 usuarioSalvo.getEmail(),
                 usuarioSalvo.getCpf(),
-                usuarioSalvo.getSenha());
+                null
+        );
     }
 
     public UsuarioDTO logar(UsuarioDTO usuarioDTO){
@@ -53,15 +54,15 @@ public class UsuarioService {
           throw new EmailNaoEncontrado();
         }
 
-        if(!usuarioDTO.senha().equalsIgnoreCase(usuario.getSenha())){
-            throw new SenhaNaoEncontrada();
-        }
+      if(!passwordEncoder.matches(usuarioDTO.senha(), usuario.getSenha())){
+          throw new SenhaNaoEncontrada();
+      }
 
-        return new UsuarioDTO(
-                usuario.getNome(),
-                usuario.getEmail(),
-                usuario.getCpf(),
-                usuario.getSenha()
-        );
+          return new UsuarioDTO(
+                  usuario.getNome(),
+                  usuario.getEmail(),
+                  usuario.getCpf(),
+                  null
+          );
     }
 }
