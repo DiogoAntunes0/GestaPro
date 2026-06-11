@@ -1,4 +1,6 @@
 package com.example.CoreCommerce.dto;
 
-public record ProdutoDTO(String sku, String nome, String categoria, String marca,  Double preco, Integer quantidade) {
+import java.math.BigDecimal;
+
+public record ProdutoDTO(String sku, String nome, String categoria, String marca, BigDecimal preco, Integer quantidadeEstoque) {
 }

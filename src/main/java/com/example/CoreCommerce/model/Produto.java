@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "Produto")
 public class Produto {
@@ -14,7 +16,7 @@ public class Produto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "SKU")
+    @Column(name = "SKU", unique = true)
     private String sku;
 
     @NotBlank
@@ -24,13 +26,14 @@ public class Produto {
     @Column(name = "Categoria")
     private String categoria;
 
+    @NotNull
     @Column(name = "Marca")
     private String marca;
 
-    @NotBlank
+    @NotNull
     @Positive
     @Column(name = "Preco")
-    private Double preco;
+    private BigDecimal preco;
 
     @NotNull
     @PositiveOrZero
@@ -53,11 +56,11 @@ public class Produto {
         this.nome = nomeProduto;
     }
 
-    public Double getPrecoProduto() {
+    public BigDecimal getPrecoProduto() {
         return preco;
     }
 
-    public void setPrecoProduto(Double precoProduto) {
+    public void setPrecoProduto(BigDecimal precoProduto) {
         this.preco = precoProduto;
     }
 

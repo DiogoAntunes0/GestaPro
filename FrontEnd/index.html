@@ -44,7 +44,7 @@
           </div>
           <div class="auth-feature-text">
             <div class="t1">E-mail Automático</div>
-            <div class="t2">Confirmação sobre seus pedidos via E-mail. </div>
+            <div class="t2">Confirmação sobre seus pedidos via E-mail.</div>
           </div>
         </div>
       </div>
@@ -256,25 +256,34 @@
       </div>
 
       <!-- ── PRODUTOS ── -->
-      <div data-page="produtos">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-          <div>
-            <h2 style="font-size:20px;font-weight:500">Produtos</h2>
-            <p style="color:var(--text3);font-size:13px">Catálogo e controle de estoque</p>
-          </div>
-          <button class="btn btn-primary" onclick="openModal('modalNovoProduto')">+ Novo Produto</button>
-        </div>
-        <div class="card">
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Nome</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead>
-              <tbody id="tabelaProdutos">
-                <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+     <div data-page="produtos">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+    <div>
+      <h2 style="font-size:20px;font-weight:500">Produtos</h2>
+      <p style="color:var(--text3);font-size:13px">Catálogo e controle de estoque</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('modalNovoProduto')">+ Novo Produto</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>SKU</th>
+            <th>Preço</th>
+            <th>Marca</th>
+            <th>Quantidade Estoque</th>
+            <th>Categoria</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaProdutos">
+          <tr><td colspan="6" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
       <!-- ── CLIENTES ── -->
       <div data-page="clientes">
@@ -355,6 +364,10 @@
         <label>Nome do produto</label>
         <input type="text" id="prodNome" placeholder="Ex: Teclado Mecânico">
       </div>
+      <div class="form-group">
+        <label>SKU</label>
+        <input type="text" id="prodSku" placeholder="Ex: TEC-001">
+      </div>
       <div class="form-grid form-grid-2">
         <div class="form-group">
           <label>Preço (R$)</label>
@@ -363,6 +376,16 @@
         <div class="form-group">
           <label>Estoque inicial</label>
           <input type="number" id="prodEstoque" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>Categoria</label>
+          <input type="text" id="prodCategoria" placeholder="Ex: Periféricos">
+        </div>
+        <div class="form-group">
+          <label>Marca</label>
+          <input type="text" id="prodMarca" placeholder="Ex: Logitech">
         </div>
       </div>
     </div>

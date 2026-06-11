@@ -28,4 +28,24 @@ public class ProdutoService {
                 ))
                 .toList();
     }
+
+    public ProdutoDTO cadastrarProdutos(ProdutoDTO produtoDTO){
+        Produto produto = new Produto();
+
+        produto.setSku(produtoDTO.sku());
+        produto.setNomeProduto(produtoDTO.nome());
+        produto.setCategoria(produtoDTO.categoria());
+        produto.setMarca(produtoDTO.marca());
+        produto.setPrecoProduto(produtoDTO.preco());
+        produto.setQuantidadeEstoque(produtoDTO.quantidadeEstoque());;
+
+        Produto produtoSalvo = produtoRepository.save(produto);
+
+        return new ProdutoDTO(produtoSalvo.getSku(),
+                produtoSalvo.getNomeProduto(),
+                produtoSalvo.getCategoria(),
+                produtoSalvo.getMarca(),
+                produtoSalvo.getPrecoProduto(),
+                produtoSalvo.getQuantidadeEstoque());
+    }
 }
