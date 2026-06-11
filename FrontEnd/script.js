@@ -117,6 +117,12 @@ async function doRegister() {
 }
 
 function loginSuccess(user) {
+  // Captura o token de dentro do objeto do usuário (ajuste a propriedade 'token' se o seu backend usar outro nome, ex: user.jwt)
+  authToken = user.token || user.jwt || authToken; 
+  if (authToken) {
+    localStorage.setItem('orderflow_token', authToken);
+  }
+
   state.currentUser = user;
   localStorage.setItem('orderflow_user', JSON.stringify(user));
   document.getElementById('authScreen').classList.add('hidden');
@@ -150,23 +156,19 @@ function doLogout() {
    CARREGAMENTO INICIAL (API)
 ══════════════════════════════════════ */
 async function loadAll() {
-  try {
-    const [clientes, produtos, pedidos] = await Promise.all([
-      apiFetch('/api/clientes'),
-      apiFetch('/api/produtos'),
-      apiFetch('/api/pedidos')
-    ]);
+  const safe = (promise) => promise.catch(() => []);
 
-    // Suporte a respostas em lista ou { content: [] } (Page do Spring)
-    state.clientes = Array.isArray(clientes) ? clientes : (clientes.content || []);
-    state.produtos = Array.isArray(produtos) ? produtos : (produtos.content || []);
-    state.pedidos  = Array.isArray(pedidos)  ? pedidos  : (pedidos.content  || []);
+  const [clientes, produtos, pedidos] = await Promise.all([
+    safe(apiFetch('/api/clientes')),
+    safe(apiFetch('/api/produtos/listar')),
+    safe(apiFetch('/api/pedidos'))
+  ]);
 
-    renderAll();
-  } catch (err) {
-    showToast('error', 'Erro ao carregar dados: ' + err.message);
-    renderAll(); // renderiza mesmo sem dados
-  }
+  state.clientes = Array.isArray(clientes) ? clientes : (clientes.content || clientes.data || []);
+  state.produtos = Array.isArray(produtos) ? produtos : (produtos.content || produtos.data || []);
+  state.pedidos  = Array.isArray(pedidos)  ? pedidos  : (pedidos.content  || pedidos.data  || []);
+
+  renderAll();
 }
 
 /* ══════════════════════════════════════
@@ -293,25 +295,32 @@ async function removeCliente(id) {
    PRODUTOS
 ══════════════════════════════════════ */
 async function criarProduto() {
-  const nome     = document.getElementById('prodNome').value.trim();
-  const preco    = parseFloat(document.getElementById('prodPreco').value);
-  const qtd      = parseInt(document.getElementById('prodEstoque').value);
-  if (!nome || isNaN(preco) || isNaN(qtd)) { showToast('error', 'Preencha todos os campos corretamente'); return; }
+  const nome = document.getElementById('prodNome').value.trim();
+  const sku  = document.getElementById('prodSku').value.trim();
+  const preco = parseFloat(document.getElementById('prodPreco').value);
+  const marca = document.getElementById('prodMarca').value.trim();
+  const quantidadeEstoque = parseInt(document.getElementById('prodEstoque').value);
+  const categoria = document.getElementById('prodCategoria').value.trim();
+ 
+
+  if (!nome || isNaN(preco) || isNaN(quantidadeEstoque)) {
+    showToast('error', 'Preencha todos os campos corretamente');
+    return;
+  }
   if (preco <= 0) { showToast('error', 'Preço deve ser maior que zero'); return; }
 
   try {
-    // POST /api/produtos { nome, preco, qtdEstoque }
-    const novo = await apiFetch('/api/produtos', {
+    const novo = await apiFetch('/api/produtos/cadastrar', {
       method: 'POST',
-      body: JSON.stringify({ nome, preco, qtdEstoque: qtd })
+      body: JSON.stringify({ nome, sku, preco, marca, quantidadeEstoque, categoria})
     });
 
     state.produtos.push(novo);
     closeModal('modalNovoProduto');
     renderAll();
-    document.getElementById('prodNome').value    = '';
-    document.getElementById('prodPreco').value   = '';
-    document.getElementById('prodEstoque').value = '';
+    // Limpa todos os campos incluindo os novos
+    ['prodNome','prodPreco','prodEstoque','prodSku','prodCategoria','prodMarca']
+      .forEach(id => document.getElementById(id).value = '');
     showToast('success', 'Produto cadastrado!');
   } catch (err) {
     showToast('error', err.message || 'Erro ao cadastrar produto');
@@ -321,20 +330,27 @@ async function criarProduto() {
 function renderProdutos() {
   const tbody = document.getElementById('tabelaProdutos');
   if (!state.produtos.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:40px">Nenhum produto cadastrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:40px">Nenhum produto cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML = state.produtos.map(p => {
-    const nome     = p.nome || p.name || '';
-    const preco    = p.preco || p.price || 0;
-    const estoque  = p.qtdEstoque ?? p.estoque ?? p.quantity ?? 0;
+    const nome      = p.nome || p.name || '';
+    const sku       = p.sku || '—';
+    const categoria = p.categoria || '—';
+    const marca     = p.marca || '—';
+    const preco     = p.preco || p.price || 0;
+    const estoque   = p.quantidadeEstoque ?? p.qtdEstoque ?? p.estoque ?? p.quantity ?? 0;
     return `
     <tr>
       <td><span class="primary">${nome}</span></td>
+      <td>${sku}</td>
       <td>R$ ${Number(preco).toFixed(2)}</td>
+      <td>${marca}</td>
       <td>${estoque}</td>
-      <td><span class="badge ${estoque > 0 ? 'badge-green' : 'badge-red'}">${estoque > 0 ? 'Disponível' : 'Sem estoque'}</span></td>
-      <td><button class="btn btn-danger btn-sm" onclick="removeProduto(${p.id})">Remover</button></td>
+      <td>${categoria}</td>
+      <td><button class="btn btn-danger btn-sm" 
+      onclick="removeProduto(${p.id})">Remover</button></td>
+      
     </tr>`;
   }).join('');
 }
@@ -609,12 +625,16 @@ function renderAll() {
 ══════════════════════════════════════ */
 (async () => {
   const savedUser = localStorage.getItem('orderflow_user');
-  if (authToken && savedUser) {
+  const savedToken = localStorage.getItem('orderflow_token');
+  
+  if (savedToken && savedUser) {
     try {
-      // Valida o token fazendo um request leve
+      // GARANTE que o token global seja recuperado do localStorage antes de qualquer renderização
+      authToken = savedToken; 
+      
       const user = JSON.parse(savedUser);
       loginSuccess(user);
-    } catch {
+    } catch (e) {
       doLogout();
     }
   }
