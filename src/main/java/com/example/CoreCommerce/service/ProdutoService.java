@@ -3,6 +3,7 @@ package com.example.CoreCommerce.service;
 import com.example.CoreCommerce.dto.ProdutoDTO;
 import com.example.CoreCommerce.model.Produto;
 import com.example.CoreCommerce.repository.ProdutoRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ public class ProdutoService {
 
         return produtos.stream()
                 .map(p -> new ProdutoDTO(
+                        p.getId(),
                         p.getSku(),
                         p.getNomeProduto(),
                         p.getCategoria(),
@@ -41,11 +43,21 @@ public class ProdutoService {
 
         Produto produtoSalvo = produtoRepository.save(produto);
 
-        return new ProdutoDTO(produtoSalvo.getSku(),
+        return new ProdutoDTO(
+                produtoSalvo.getId(),
+                produtoSalvo.getSku(),
                 produtoSalvo.getNomeProduto(),
                 produtoSalvo.getCategoria(),
                 produtoSalvo.getMarca(),
                 produtoSalvo.getPrecoProduto(),
                 produtoSalvo.getQuantidadeEstoque());
+    }
+
+    @Transactional
+    public Produto deletarProduto(Long id){
+        if(!produtoRepository.existsById(id)){
+            System.out.println("Produto não encontrado, tente novamente!");
+        }
+        return produtoRepository.deleteProdutosById(id);
     }
 }
