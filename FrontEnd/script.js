@@ -349,7 +349,7 @@ function renderProdutos() {
       <td>${estoque}</td>
       <td>${categoria}</td>
       <td><button class="btn btn-danger btn-sm" 
-      onclick="removeProduto(${p.id})">Remover</button></td>
+      onclick="removeProduto('${p.id}')">Remover</button></td>
       
     </tr>`;
   }).join('');
