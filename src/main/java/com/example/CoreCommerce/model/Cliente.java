@@ -27,7 +27,6 @@ public class Cliente {
     @Column(name = "cpf", unique = true)
     private String cpf;
 
-
     public Cliente(){}
 
     public Cliente(String cpf, LocalDate dataCadastro, String email, Long id, String nome, String senha) {

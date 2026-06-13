@@ -31,4 +31,9 @@ public class ProdutoController {
     public Produto deletarProduto(@PathVariable Long id) {
         return produtoService.deletarProduto(id);
     }
+
+    @PutMapping("/produtos/editar/{id}")
+    public ProdutoDTO editarProduto(@PathVariable Long id, @RequestBody ProdutoDTO produtoDTO){
+        return produtoService.editarProduto(id, produtoDTO);
+    }
 }
