@@ -17,6 +17,9 @@ let state = {
   pedidoFilter: 'TODOS'
 };
 
+// ID do produto sendo editado (null = modo "novo")
+let editingProdutoId = null;
+
 /* ══════════════════════════════════════
    HELPER: fetch com autenticação
 ══════════════════════════════════════ */
@@ -193,6 +196,7 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modalNovoPedido') { state.cart = []; renderCart(); }
+  if (id === 'modalNovoProduto') { resetProdutoForm(); }
 }
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) {
@@ -294,6 +298,32 @@ async function removeCliente(id) {
 /* ══════════════════════════════════════
    PRODUTOS
 ══════════════════════════════════════ */
+function resetProdutoForm() {
+  editingProdutoId = null;
+  document.getElementById('produtoModalTitle').textContent = 'Novo Produto';
+  document.getElementById('btnSalvarProduto').textContent = 'Salvar Produto';
+  ['prodNome','prodPreco','prodEstoque','prodSku','prodCategoria','prodMarca']
+    .forEach(id => document.getElementById(id).value = '');
+}
+
+function editarProduto(id) {
+  const prod = state.produtos.find(p => String(p.id) === String(id));
+  if (!prod) return;
+
+  editingProdutoId = id;
+  document.getElementById('produtoModalTitle').textContent = 'Alterar Produto';
+  document.getElementById('btnSalvarProduto').textContent = 'Salvar Alterações';
+
+  document.getElementById('prodNome').value      = getProdutoNome(prod);
+  document.getElementById('prodSku').value        = prod.sku || '';
+  document.getElementById('prodPreco').value      = getProdutoPreco(prod);
+  document.getElementById('prodEstoque').value    = getProdutoEstoque(prod);
+  document.getElementById('prodCategoria').value  = prod.categoria || '';
+  document.getElementById('prodMarca').value      = prod.marca || '';
+
+  openModal('modalNovoProduto');
+}
+
 async function criarProduto() {
   const nome = document.getElementById('prodNome').value.trim();
   const sku  = document.getElementById('prodSku').value.trim();
@@ -301,7 +331,6 @@ async function criarProduto() {
   const marca = document.getElementById('prodMarca').value.trim();
   const quantidadeEstoque = parseInt(document.getElementById('prodEstoque').value);
   const categoria = document.getElementById('prodCategoria').value.trim();
- 
 
   if (!nome || isNaN(preco) || isNaN(quantidadeEstoque)) {
     showToast('error', 'Preencha todos os campos corretamente');
@@ -309,28 +338,48 @@ async function criarProduto() {
   }
   if (preco <= 0) { showToast('error', 'Preço deve ser maior que zero'); return; }
 
-  try {
-    const novo = await apiFetch('/api/produtos/cadastrar', {
-      method: 'POST',
-      body: JSON.stringify({ nome, sku, preco, marca, quantidadeEstoque, categoria})
-    });
+  const payload = { nome, sku, preco, marca, quantidadeEstoque, categoria };
 
-    state.produtos.push(novo);
-    closeModal('modalNovoProduto');
-    renderAll();
-    // Limpa todos os campos incluindo os novos
-    ['prodNome','prodPreco','prodEstoque','prodSku','prodCategoria','prodMarca']
-      .forEach(id => document.getElementById(id).value = '');
-    showToast('success', 'Produto cadastrado!');
+  try {
+    if (editingProdutoId) {
+      // PUT /api/produtos/{id} — ajuste o endpoint conforme seu backend
+      const atualizado = await apiFetch(`/api/produtos/editar/${editingProdutoId}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload)
+      });
+
+      const idx = state.produtos.findIndex(p => String(p.id) === String(editingProdutoId));
+      if (idx !== -1) {
+        state.produtos[idx] = atualizado && typeof atualizado === 'object'
+          ? { ...state.produtos[idx], ...atualizado }
+          : { ...state.produtos[idx], ...payload };
+      }
+
+      closeModal('modalNovoProduto');
+      renderAll();
+      showToast('success', 'Produto atualizado!');
+    } else {
+      const novo = await apiFetch('/api/produtos/cadastrar', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      state.produtos.push(novo);
+      closeModal('modalNovoProduto');
+      renderAll();
+      showToast('success', 'Produto cadastrado!');
+    }
+
+    resetProdutoForm();
   } catch (err) {
-    showToast('error', err.message || 'Erro ao cadastrar produto');
+    showToast('error', err.message || 'Erro ao salvar produto');
   }
 }
 
 function renderProdutos() {
   const tbody = document.getElementById('tabelaProdutos');
   if (!state.produtos.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:40px">Nenhum produto cadastrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:40px">Nenhum produto cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML = state.produtos.map(p => {
@@ -348,9 +397,12 @@ function renderProdutos() {
       <td>${marca}</td>
       <td>${estoque}</td>
       <td>${categoria}</td>
-      <td><button class="btn btn-danger btn-sm" 
-      onclick="removeProduto('${p.id}')">Remover</button></td>
-      
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="editarProduto('${p.id}')">Alterar</button>
+          <button class="btn btn-danger btn-sm" onclick="removeProduto('${p.id}')">Remover</button>
+        </div>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -371,7 +423,7 @@ async function removeProduto(id) {
    PEDIDOS
 ══════════════════════════════════════ */
 function getProdutoEstoque(p) {
-  return p.qtdEstoque ?? p.estoque ?? p.quantity ?? 0;
+  return p.quantidadeEstoque ?? p.qtdEstoque ?? p.estoque ?? p.quantity ?? 0;
 }
 function getProdutoPreco(p) {
   return p.preco || p.price || 0;
@@ -472,7 +524,8 @@ async function criarPedido() {
     state.cart.forEach(item => {
       const prod = state.produtos.find(p => p.id === item.produtoId);
       if (prod) {
-        const campo = 'qtdEstoque' in prod ? 'qtdEstoque' : ('estoque' in prod ? 'estoque' : 'quantity');
+        const campo = 'quantidadeEstoque' in prod ? 'quantidadeEstoque'
+          : ('qtdEstoque' in prod ? 'qtdEstoque' : ('estoque' in prod ? 'estoque' : 'quantity'));
         prod[campo] -= item.quantidade;
       }
     });

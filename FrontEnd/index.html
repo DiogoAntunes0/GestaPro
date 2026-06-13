@@ -351,11 +351,11 @@
   </div>
 </div>
 
-<!-- Modal: Novo Produto -->
+<!-- Modal: Novo/Editar Produto -->
 <div class="modal-overlay" id="modalNovoProduto">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Novo Produto</div>
+      <div class="modal-title" id="produtoModalTitle">Novo Produto</div>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modalNovoProduto')">✕</button>
     </div>
     <div class="form-grid">
@@ -390,7 +390,7 @@
     </div>
     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modalNovoProduto')">Cancelar</button>
-      <button class="btn btn-primary" onclick="criarProduto()">Salvar Produto</button>
+      <button class="btn btn-primary" id="btnSalvarProduto" onclick="criarProduto()">Salvar Produto</button>
     </div>
   </div>
 </div>
