@@ -29,11 +29,10 @@ public class Cliente {
 
     public Cliente(){}
 
-    public Cliente(String cpf, LocalDate dataCadastro, String email, Long id, String nome, String senha) {
-        this.cpf = cpf;
-        this.email = email;
-        this.id = id;
+    public Cliente(String nome, String email, String cpf, Pedido pedido){
         this.nome = nome;
+        this.email = email;
+        this.cpf = cpf;
     }
 
     public String getCpf() {
@@ -43,7 +42,6 @@ public class Cliente {
     public void setCpf(String cpf) {
         this.cpf = cpf;
     }
-
 
     public String getEmail() {
         return email;
@@ -68,5 +66,4 @@ public class Cliente {
     public void setNome(String nome) {
         this.nome = nome;
     }
-
 }

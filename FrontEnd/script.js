@@ -162,9 +162,9 @@ async function loadAll() {
   const safe = (promise) => promise.catch(() => []);
 
   const [clientes, produtos, pedidos] = await Promise.all([
-    safe(apiFetch('/api/clientes')),
+    safe(apiFetch('/api/clientes/listar')),
     safe(apiFetch('/api/produtos/listar')),
-    safe(apiFetch('/api/pedidos'))
+    safe(apiFetch('/api/pedidos/listar'))
   ]);
 
   state.clientes = Array.isArray(clientes) ? clientes : (clientes.content || clientes.data || []);
@@ -242,7 +242,7 @@ async function criarCliente() {
 
   try {
     // POST /api/clientes { nome, email, cpf }
-    const novo = await apiFetch('/api/clientes', {
+    const novo = await apiFetch('/api/clientes/cadastrar', {
       method: 'POST',
       body: JSON.stringify({ nome, email, cpf })
     });
