@@ -1,11 +1,11 @@
 package com.example.CoreCommerce.service;
 
 import com.example.CoreCommerce.dto.ClienteDTO;
-import com.example.CoreCommerce.dto.ProdutoDTO;
 import com.example.CoreCommerce.exception.CpfClienteExistente;
 import com.example.CoreCommerce.exception.EmailClienteExistente;
-import com.example.CoreCommerce.model.Cliente;
+import com.example.CoreCommerce.entity.Cliente;
 import com.example.CoreCommerce.repository.ClienteRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,7 +40,7 @@ public class ClienteService {
                 clienteSalvo.getCpf());
     }
 
-    public List<ClienteDTO> listarClientes(ClienteDTO clienteDTO){
+    public List<ClienteDTO> listarClientes(){
         List<Cliente> clientes = clienteRepository.findAll();
 
         return clientes.stream()
@@ -51,5 +51,10 @@ public class ClienteService {
                         c.getCpf()
                 ))
                 .toList();
+    }
+
+    @Transactional
+    public Cliente deletarCliente(Long id){
+       return clienteRepository.deleteClienteById(id);
     }
 }

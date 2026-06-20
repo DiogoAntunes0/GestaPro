@@ -5,7 +5,7 @@ import com.example.CoreCommerce.exception.CpfExistente;
 import com.example.CoreCommerce.exception.EmailExistente;
 import com.example.CoreCommerce.exception.EmailNaoEncontrado;
 import com.example.CoreCommerce.exception.SenhaNaoEncontrada;
-import com.example.CoreCommerce.model.Usuario;
+import com.example.CoreCommerce.entity.Usuario;
 import com.example.CoreCommerce.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

@@ -1,7 +1,7 @@
 package com.example.CoreCommerce.service;
 
 import com.example.CoreCommerce.dto.ProdutoDTO;
-import com.example.CoreCommerce.model.Produto;
+import com.example.CoreCommerce.entity.Produto;
 import com.example.CoreCommerce.repository.ProdutoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
