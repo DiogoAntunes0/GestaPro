@@ -305,6 +305,28 @@
         </div>
       </div>
 
+      <div class="modal-overlay" id="modalEditarCliente">
+  <div class="modal">
+    <h3>Editar E-mail do Cliente</h3>
+
+    <label>Nome</label>
+    <input type="text" id="editCliNome" disabled>
+
+    <label>CPF</label>
+    <input type="text" id="editCliCpf" disabled>
+
+    <label>E-mail</label>
+    <input type="email" id="editCliEmail">
+
+    <input type="hidden" id="editCliId">
+
+    <div style="display:flex; gap:8px; margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('modalEditarCliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEmailCliente()">Salvar E-mail</button>
+    </div>
+  </div>
+</div>
+
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /app -->
