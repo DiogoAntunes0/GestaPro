@@ -107,12 +107,12 @@ async function doRegister() {
   }
 
   try {
-    // POST /api/auth/register 
+    // POST /api/auth/register
     const user = await apiFetch('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ nome, email, cpf, senha })
     });
-  
+
     loginSuccess(user);
   } catch (err) {
     errEl.innerHTML = `<div class="alert alert-error">${err.message || 'Erro ao criar conta.'}</div>`;
@@ -121,7 +121,7 @@ async function doRegister() {
 
 function loginSuccess(user) {
   // Captura o token de dentro do objeto do usuário (ajuste a propriedade 'token' se o seu backend usar outro nome, ex: user.jwt)
-  authToken = user.token || user.jwt || authToken; 
+  authToken = user.token || user.jwt || authToken;
   if (authToken) {
     localStorage.setItem('orderflow_token', authToken);
   }
@@ -278,9 +278,54 @@ function renderClientes() {
       <td>${email}</td>
       <td>${cpf}</td>
       <td>${cadastro ? cadastro.split('T')[0] : ''}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="removeCliente(${id})">Remover</button></td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-ghost btn-sm" onclick="editarCliente(${id})">Alterar</button>
+          <button class="btn btn-danger btn-sm" onclick="removeCliente(${id})">Remover</button>
+        </div>
+      </td>
     </tr>`;
   }).join('');
+}
+
+function editarCliente(id) {
+  const cli = state.clientes.find(c => String(c.id) === String(id));
+  if (!cli) return;
+
+  document.getElementById('editCliId').value    = cli.id;
+  document.getElementById('editCliNome').value  = cli.nome || cli.name || '';
+  document.getElementById('editCliCpf').value   = cli.cpf || '';
+  document.getElementById('editCliEmail').value = cli.email || '';
+
+  openModal('modalEditarCliente');
+}
+
+async function salvarEmailCliente() {
+  const id    = document.getElementById('editCliId').value;
+  const email = document.getElementById('editCliEmail').value.trim();
+
+  if (!email) { showToast('error', 'Informe um e-mail válido'); return; }
+
+  try {
+    // PATCH /api/clientes/editar/email — atualiza somente o e-mail do cliente
+    const atualizado = await apiFetch(`/api/clientes/editar/email/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ id: parseInt(id), email })
+    });
+
+    const idx = state.clientes.findIndex(c => String(c.id) === String(id));
+    if (idx !== -1) {
+      state.clientes[idx] = atualizado && typeof atualizado === 'object'
+        ? { ...state.clientes[idx], ...atualizado }
+        : { ...state.clientes[idx], email };
+    }
+
+    closeModal('modalEditarCliente');
+    renderAll();
+    showToast('success', 'E-mail atualizado com sucesso!');
+  } catch (err) {
+    showToast('error', err.message || 'Erro ao atualizar e-mail');
+  }
 }
 
 async function removeCliente(id) {
@@ -679,12 +724,12 @@ function renderAll() {
 (async () => {
   const savedUser = localStorage.getItem('orderflow_user');
   const savedToken = localStorage.getItem('orderflow_token');
-  
+
   if (savedToken && savedUser) {
     try {
       // GARANTE que o token global seja recuperado do localStorage antes de qualquer renderização
-      authToken = savedToken; 
-      
+      authToken = savedToken;
+
       const user = JSON.parse(savedUser);
       loginSuccess(user);
     } catch (e) {

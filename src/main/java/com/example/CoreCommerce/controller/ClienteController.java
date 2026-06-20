@@ -1,6 +1,7 @@
 package com.example.CoreCommerce.controller;
 
 import com.example.CoreCommerce.dto.ClienteDTO;
+import com.example.CoreCommerce.dto.ClienteDTOEmail;
 import com.example.CoreCommerce.entity.Cliente;
 import com.example.CoreCommerce.service.ClienteService;
 import jakarta.validation.Valid;
@@ -29,5 +30,10 @@ public class ClienteController {
     @DeleteMapping("/clientes/{id}")
     public Cliente deletarCliente(@PathVariable Long id){
        return clienteService.deletarCliente(id);
+    }
+
+    @PatchMapping("/clientes/editar/email/{id}")
+    public ClienteDTOEmail editarEmailCliente(@RequestBody ClienteDTOEmail clienteDTOEmail, @PathVariable Long id){
+        return clienteService.editarCliente(clienteDTOEmail, id);
     }
 }

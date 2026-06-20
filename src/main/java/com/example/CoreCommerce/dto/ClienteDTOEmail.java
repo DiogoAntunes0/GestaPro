@@ -1,4 +1,10 @@
 package com.example.CoreCommerce.dto;
 
-public record ClienteDTOEmail() {
+import com.example.CoreCommerce.entity.Cliente;
+
+public record ClienteDTOEmail(Long id, String email) {
+
+    ClienteDTOEmail(Cliente cliente){
+        this(cliente.getId(), cliente.getEmail());
+    }
 }

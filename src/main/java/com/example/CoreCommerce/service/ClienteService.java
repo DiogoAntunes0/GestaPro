@@ -1,6 +1,7 @@
 package com.example.CoreCommerce.service;
 
 import com.example.CoreCommerce.dto.ClienteDTO;
+import com.example.CoreCommerce.dto.ClienteDTOEmail;
 import com.example.CoreCommerce.exception.CpfClienteExistente;
 import com.example.CoreCommerce.exception.EmailClienteExistente;
 import com.example.CoreCommerce.entity.Cliente;
@@ -56,5 +57,15 @@ public class ClienteService {
     @Transactional
     public Cliente deletarCliente(Long id){
        return clienteRepository.deleteClienteById(id);
+    }
+
+    @Transactional
+    public ClienteDTOEmail editarCliente(ClienteDTOEmail clienteDTOEmail, Long id){
+         Cliente cliente = clienteRepository.findById(id)
+                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado!"));
+
+         cliente.setEmail(clienteDTOEmail.email());
+
+         return new ClienteDTOEmail(cliente.getId(), cliente.getEmail());
     }
 }
