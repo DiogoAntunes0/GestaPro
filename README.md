@@ -9,7 +9,7 @@ O **GestaPro** é um sistema empresarial focado na centralização, controle e o
 
 ## 🚀 Funcionalidades Principais
 
-* **Gestão de Clientes:** Cadastro completo, atualização e listagem de clientes (Pessoa Física e Jurídica).
+* **Gestão de Clientes:** Cadastro completo, atualização e listagem de clientes (Pessoa Física).
 * **Catálogo de Produtos:** Controle de estoque, preços e especificações de produtos.
 * **Fluxo de Pedidos:** Criação de ordens de venda vinculando múltiplos produtos a um cliente específico, com cálculo automatizado de totais e validação de regras de negócio.
 
@@ -80,6 +80,7 @@ O servidor iniciará por padrão na porta `8080` (http://localhost:8080).
 - [ ] Implementação de autenticação e controle de acesso (Spring Security).
 - [ ] Módulo de faturamento básico e geração de relatórios de vendas.
 - [ ] Integração com APIs externas para consulta de CEP no cadastro de clientes.
+- [ ] Cadastro completo, atualização e listagem de clientes (Pessoa Jurídica) 
 
 ---
 Desenvolvido com ☕ e dedicação por Diogo.
