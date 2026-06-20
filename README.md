@@ -33,7 +33,7 @@ A arquitetura do projeto foi desenhada prezando pelo **Princípio da Responsabil
 ```text
 com.gestapro.api
 │
-├── domain/          # Entidades de negócio (Client, Product, Order) e heranças comuns
+├── entity/          # Entidades de negócio (Client, Product, Order) e heranças comuns
 ├── dto/             # Records para validação e transporte de dados (Request/Response)
 ├── repository/      # Interfaces de comunicação com o banco de dados (Spring Data)
 ├── service/         # Camada de regras de negócio e lógica do sistema
