@@ -1,9 +1,8 @@
-package com.example.CoreCommerce.model;
+package com.example.CoreCommerce.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import org.hibernate.cache.spi.support.AbstractReadWriteAccess;
 
 @Entity
 @Table(name = "ItemPedido")

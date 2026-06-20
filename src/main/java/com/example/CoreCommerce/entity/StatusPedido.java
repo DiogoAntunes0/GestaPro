@@ -1,4 +1,4 @@
-package com.example.CoreCommerce.model;
+package com.example.CoreCommerce.entity;
 
 public enum StatusPedido {
     AGUARDANDO(""),

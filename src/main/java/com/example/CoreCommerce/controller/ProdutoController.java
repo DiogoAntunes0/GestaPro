@@ -1,12 +1,11 @@
 package com.example.CoreCommerce.controller;
 
 import com.example.CoreCommerce.dto.ProdutoDTO;
-import com.example.CoreCommerce.model.Produto;
+import com.example.CoreCommerce.entity.Produto;
 import com.example.CoreCommerce.service.ProdutoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.support.SessionStatus;
 
 import java.util.List;
 
@@ -28,8 +27,8 @@ public class ProdutoController {
     }
 
     @DeleteMapping("/produtos/{id}")
-    public Produto deletarProduto(@PathVariable Long id) {
-        return produtoService.deletarProduto(id);
+    public ResponseEntity<Produto> deletarProduto(@PathVariable Long id) {
+        return ResponseEntity.ok(produtoService.deletarProduto(id));
     }
 
     @PutMapping("/produtos/editar/{id}")

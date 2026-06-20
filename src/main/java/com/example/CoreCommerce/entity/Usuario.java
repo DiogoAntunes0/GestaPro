@@ -1,6 +1,5 @@
-package com.example.CoreCommerce.model;
+package com.example.CoreCommerce.entity;
 
-import com.example.CoreCommerce.service.UsuarioService;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
