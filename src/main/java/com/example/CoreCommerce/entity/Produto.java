@@ -33,7 +33,7 @@ public class Produto {
     @NotNull
     @Positive
     @Column(name = "Preco")
-    private BigDecimal preco;
+    private Double preco;
 
     @NotNull
     @PositiveOrZero
@@ -56,11 +56,11 @@ public class Produto {
         this.nome = nomeProduto;
     }
 
-    public BigDecimal getPrecoProduto() {
+    public Double getPrecoProduto() {
         return preco;
     }
 
-    public void setPrecoProduto(BigDecimal precoProduto) {
+    public void setPrecoProduto(Double precoProduto) {
         this.preco = precoProduto;
     }
 
@@ -94,5 +94,13 @@ public class Produto {
 
     public void setSku(String sku) {
         this.sku = sku;
+    }
+
+    public Double getPreco() {
+        return this.preco; // ou o nome que você deu para o atributo de valor/preço na entidade Produto
+    }
+
+    public String getNome() {
+        return getNomeProduto();
     }
 }
