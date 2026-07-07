@@ -1,9 +1,9 @@
 package com.example.CoreCommerce.entity;
 
 public enum StatusPedido {
-    AGUARDANDO(""),
-    PAGOS(""),
-    CANCELADOS("");
+    AGUARDANDO("AGUARDANDO"),
+    PAGOS("PAGOS"),
+    CANCELADO("CANCELADO");
 
     private String statusPedido;
 

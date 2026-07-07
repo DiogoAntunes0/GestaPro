@@ -30,12 +30,10 @@ async function apiFetch(path, options = {}) {
   const res = await fetch(`${API}${path}`, { ...options, headers });
 
   if (res.status === 401) {
-    // Token expirado ou inválido → redireciona para login
     doLogout();
     throw new Error('Sessão expirada. Faça login novamente.');
   }
 
-  // Tenta parsear JSON; se não tiver corpo (204), retorna null
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch {}
@@ -72,7 +70,6 @@ async function doLogin() {
   }
 
   try {
-    // POST /api/auth/login → busca no banco de dados
     const user = await apiFetch('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, senha })
@@ -107,7 +104,6 @@ async function doRegister() {
   }
 
   try {
-    // POST /api/auth/register
     const user = await apiFetch('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ nome, email, cpf, senha })
@@ -120,7 +116,6 @@ async function doRegister() {
 }
 
 function loginSuccess(user) {
-  // Captura o token de dentro do objeto do usuário (ajuste a propriedade 'token' se o seu backend usar outro nome, ex: user.jwt)
   authToken = user.token || user.jwt || authToken;
   if (authToken) {
     localStorage.setItem('orderflow_token', authToken);
@@ -241,7 +236,6 @@ async function criarCliente() {
   if (!nome || !email || !cpf) { showToast('error', 'Preencha todos os campos'); return; }
 
   try {
-    // POST /api/clientes { nome, email, cpf }
     const novo = await apiFetch('/api/clientes/cadastrar', {
       method: 'POST',
       body: JSON.stringify({ nome, email, cpf })
@@ -266,12 +260,11 @@ function renderClientes() {
     return;
   }
   tbody.innerHTML = state.clientes.map(c => {
-    // Normaliza campos que podem ter nomes diferentes no backend
-    const id         = c.id;
-    const nome       = c.nome || c.name || '';
-    const email      = c.email || '';
-    const cpf        = c.cpf || '';
-    const cadastro   = c.dataCadastro || c.createdAt || '';
+    const id       = c.id;
+    const nome     = c.nome || c.name || '';
+    const email    = c.email || '';
+    const cpf      = c.cpf || '';
+    const cadastro = c.dataCadastro || c.createdAt || '';
     return `
     <tr>
       <td><span class="primary">${nome}</span></td>
@@ -307,7 +300,6 @@ async function salvarEmailCliente() {
   if (!email) { showToast('error', 'Informe um e-mail válido'); return; }
 
   try {
-    // PATCH /api/clientes/editar/email — atualiza somente o e-mail do cliente
     const atualizado = await apiFetch(`/api/clientes/editar/email/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ id: parseInt(id), email })
@@ -330,7 +322,6 @@ async function salvarEmailCliente() {
 
 async function removeCliente(id) {
   try {
-    // DELETE /api/clientes/{id}
     await apiFetch(`/api/clientes/${id}`, { method: 'DELETE' });
     state.clientes = state.clientes.filter(c => c.id !== id);
     renderAll();
@@ -387,7 +378,6 @@ async function criarProduto() {
 
   try {
     if (editingProdutoId) {
-      // PUT /api/produtos/{id} — ajuste o endpoint conforme seu backend
       const atualizado = await apiFetch(`/api/produtos/editar/${editingProdutoId}`, {
         method: 'PUT',
         body: JSON.stringify(payload)
@@ -454,7 +444,6 @@ function renderProdutos() {
 
 async function removeProduto(id) {
   try {
-    // DELETE /api/produtos/{id}
     await apiFetch(`/api/produtos/${id}`, { method: 'DELETE' });
     state.produtos = state.produtos.filter(p => p.id !== id);
     renderAll();
@@ -547,7 +536,6 @@ async function criarPedido() {
 
   const cliente = state.clientes.find(c => c.id === clienteId);
 
-  // Payload: o backend calcula precoVenda e valorTotal automaticamente
   const payload = {
     clienteId,
     itens: state.cart.map(i => ({
@@ -557,7 +545,6 @@ async function criarPedido() {
   };
 
   try {
-    // POST /api/pedidos { clienteId, itens: [{ produtoId, quantidade }] }
     const novo = await apiFetch('/api/pedidos', {
       method: 'POST',
       body: JSON.stringify(payload)
@@ -565,7 +552,6 @@ async function criarPedido() {
 
     state.pedidos.unshift(novo);
 
-    // Atualiza estoque local (reflexo do que o backend fez)
     state.cart.forEach(item => {
       const prod = state.produtos.find(p => p.id === item.produtoId);
       if (prod) {
@@ -594,8 +580,6 @@ function filterPedidos(status, el) {
 
 async function atualizarStatus(pedidoId, status) {
   try {
-    // PATCH /api/pedidos/{id}/status  body: { status }
-    // — ou PUT /api/pedidos/{id} dependendo do seu backend
     await apiFetch(`/api/pedidos/${pedidoId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status })
@@ -607,7 +591,49 @@ async function atualizarStatus(pedidoId, status) {
     showToast('success', 'Status atualizado!');
   } catch (err) {
     showToast('error', err.message || 'Erro ao atualizar status');
-    renderPedidos(); // re-renderiza para reverter o select visualmente
+    renderPedidos();
+  }
+}
+
+/* ══════════════════════════════════════
+   VER ITENS DO PEDIDO
+   Endpoint esperado: GET /api/pedidos/{id}/itens
+   Retorno esperado: [{ nomeProduto, quantidade, precoVenda }]
+══════════════════════════════════════ */
+async function verItensPedido(pedidoId) {
+  document.getElementById('itensPedidoNumero').textContent = `#${String(pedidoId).slice(-4)}`;
+  document.getElementById('tabelaItensPedido').innerHTML =
+    '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">Carregando...</td></tr>';
+
+  openModal('modalItensPedido');
+
+  try {
+    const itens = await apiFetch(`/api/pedidos/${pedidoId}/itens`);
+    const tbody = document.getElementById('tabelaItensPedido');
+
+    if (!itens || !itens.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">Nenhum item encontrado</td></tr>';
+      return;
+    }
+
+    const totalGeral = itens.reduce((s, i) => s + (i.precoVenda * i.quantidade), 0);
+
+    tbody.innerHTML = itens.map(item => `
+      <tr>
+        <td><span class="primary">${item.nomeProduto || '—'}</span></td>
+        <td style="text-align:center">${item.quantidade}</td>
+        <td>R$ ${Number(item.precoVenda).toFixed(2)}</td>
+        <td><span class="primary">R$ ${(item.precoVenda * item.quantidade).toFixed(2)}</span></td>
+      </tr>
+    `).join('') + `
+      <tr style="border-top:2px solid var(--border)">
+        <td colspan="3" style="text-align:right;font-weight:600;padding-top:12px">Total</td>
+        <td style="padding-top:12px"><span class="primary" style="font-weight:600">R$ ${totalGeral.toFixed(2)}</span></td>
+      </tr>
+    `;
+  } catch (err) {
+    document.getElementById('tabelaItensPedido').innerHTML =
+      `<tr><td colspan="4" style="text-align:center;color:var(--red,#f44);padding:24px">Erro ao carregar itens: ${err.message}</td></tr>`;
   }
 }
 
@@ -622,14 +648,13 @@ function renderPedidos() {
   const badgeMap = { AGUARDANDO_PAGAMENTO:'badge-amber', PAGO:'badge-green', CANCELADO:'badge-red' };
   const labelMap = { AGUARDANDO_PAGAMENTO:'Aguardando', PAGO:'Pago', CANCELADO:'Cancelado' };
   tbody.innerHTML = pedidos.map(p => {
-    // Normaliza campos que podem variar no backend
     const id          = p.id;
     const nomeCliente = p.nomeCliente || p.cliente?.nome || p.cliente?.name || '—';
     const dataStr     = p.dataPedido || p.createdAt || p.data || '';
     const data        = dataStr ? new Date(dataStr).toLocaleString('pt-BR') : '—';
     const itens       = p.itens || p.items || [];
     const total       = p.valorTotal || p.total || 0;
-    const status      = p.status || 'AGUARDANDO_PAGAMENTO';
+    const status      = p.status || p.statusPedido || 'AGUARDANDO_PAGAMENTO';
     return `
     <tr>
       <td><span class="primary">#${String(id).slice(-4)}</span></td>
@@ -639,11 +664,24 @@ function renderPedidos() {
       <td><span class="primary">R$ ${Number(total).toFixed(2)}</span></td>
       <td><span class="badge ${badgeMap[status] || 'badge-amber'}">${labelMap[status] || status}</span></td>
       <td>
-        <select style="padding:5px 8px;font-size:12px;width:auto" onchange="atualizarStatus(${id}, this.value)">
-          <option ${status==='AGUARDANDO_PAGAMENTO'?'selected':''} value="AGUARDANDO_PAGAMENTO">Aguardando</option>
-          <option ${status==='PAGO'?'selected':''} value="PAGO">Pago</option>
-          <option ${status==='CANCELADO'?'selected':''} value="CANCELADO">Cancelado</option>
-        </select>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button
+            class="btn btn-ghost btn-sm"
+            onclick="verItensPedido(${id})"
+            title="Ver itens do pedido"
+            style="padding:5px 7px"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+          <select style="padding:5px 8px;font-size:12px;width:auto" onchange="atualizarStatus(${id}, this.value)">
+            <option ${status==='AGUARDANDO_PAGAMENTO'?'selected':''} value="AGUARDANDO_PAGAMENTO">Aguardando</option>
+            <option ${status==='PAGO'?'selected':''} value="PAGO">Pago</option>
+            <option ${status==='CANCELADO'?'selected':''} value="CANCELADO">Cancelado</option>
+          </select>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -661,7 +699,6 @@ function renderDashboard() {
   document.getElementById('statProdutos').textContent = state.produtos.length;
   document.getElementById('statClientes').textContent = state.clientes.length;
 
-  // Últimos pedidos
   const recent = state.pedidos.slice(0, 5);
   const badgeMap2 = { AGUARDANDO_PAGAMENTO:'badge-amber', PAGO:'badge-green', CANCELADO:'badge-red' };
   const lbl2 = { AGUARDANDO_PAGAMENTO:'Aguardando', PAGO:'Pago', CANCELADO:'Cancelado' };
@@ -671,7 +708,7 @@ function renderDashboard() {
   } else {
     dashTbody.innerHTML = recent.map(p => {
       const nome   = p.nomeCliente || p.cliente?.nome || '—';
-      const status = p.status || 'AGUARDANDO_PAGAMENTO';
+      const status = p.status || p.statusPedido || 'AGUARDANDO_PAGAMENTO';
       const total  = p.valorTotal || p.total || 0;
       return `
       <tr>
@@ -682,7 +719,6 @@ function renderDashboard() {
     }).join('');
   }
 
-  // Top produtos
   const vendas = {};
   state.pedidos.forEach(p => {
     const itens = p.itens || p.items || [];
@@ -727,9 +763,7 @@ function renderAll() {
 
   if (savedToken && savedUser) {
     try {
-      // GARANTE que o token global seja recuperado do localStorage antes de qualquer renderização
       authToken = savedToken;
-
       const user = JSON.parse(savedUser);
       loginSuccess(user);
     } catch (e) {
