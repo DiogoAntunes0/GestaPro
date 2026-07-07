@@ -16,6 +16,8 @@ public class Pedido {
     private Long id;
 
     private LocalDateTime dataPedido = LocalDateTime.now();
+
+    @Enumerated(EnumType.STRING)
     private StatusPedido statusPedido;
 
     @ManyToOne
