@@ -1,7 +1,9 @@
 package com.example.CoreCommerce.service;
 
 import com.example.CoreCommerce.dto.ItemPedidoDTO;
+import com.example.CoreCommerce.dto.ItemPedidoResponseDTO;
 import com.example.CoreCommerce.dto.PedidoDTO;
+import com.example.CoreCommerce.dto.PedidoResponseDTO;
 import com.example.CoreCommerce.entity.*;
 import com.example.CoreCommerce.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +37,6 @@ public class PedidoService {
         List<ItemPedido> itensPedido = new ArrayList<>();
         double valorTotal = 0.0;
 
-        // 3. Processa os itens do DTO
         for (ItemPedidoDTO itemPedidoDTO : dto.itens()) {
             Produto produto = produtoRepository.findById(itemPedidoDTO.produtoId())
                     .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
@@ -52,5 +53,47 @@ public class PedidoService {
         pedido.setValorTotal(valorTotal);
 
         return pedidoRepository.save(pedido);
+    }
+
+    public List<ItemPedidoResponseDTO> listarItemPedido(Long id) {
+        Pedido pedido = pedidoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        return pedido.getItens().stream()
+                .map(item -> new ItemPedidoResponseDTO(
+                        item.getProduto().getNome(),
+                        item.getQuantidade(),
+                        item.getPrecoVenda()
+                ))
+                .toList();
+    }
+
+    public List<PedidoResponseDTO> listarTodosPedidos() {
+        return pedidoRepository.findAll().stream()
+                .map(this::toPedidoResponseDTO)
+                .toList();
+    }
+
+    private PedidoResponseDTO toPedidoResponseDTO(Pedido pedido) {
+        List<ItemPedidoResponseDTO> itensDTO = pedido.getItens().stream()
+                .map(item -> new ItemPedidoResponseDTO(
+                        item.getProduto().getNome(),
+                        item.getQuantidade(),
+                        item.getPrecoVenda()
+                ))
+                .toList();
+
+        Double valorTotal = itensDTO.stream()
+                .map(i -> i.precoVenda() * i.quantidade())
+                .reduce(0.0, Double::sum);
+
+        return new PedidoResponseDTO(
+                pedido.getId(),
+                pedido.getCliente().getNome(),
+                pedido.getDataPedido(),
+                itensDTO,
+                valorTotal,
+                pedido.getStatusPedido().name() // ou getStatus() se já for String
+        );
     }
 }

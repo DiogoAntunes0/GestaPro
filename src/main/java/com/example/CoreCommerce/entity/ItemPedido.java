@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-import java.math.BigDecimal;
-
 @Entity
 @Table(name = "ItemPedido")
 public class ItemPedido {
@@ -38,7 +36,6 @@ public class ItemPedido {
         this.quantidade = quantidade;
     }
 
-    // --- GETTERS E SETTERS ---
 
     public Long getId() {
         return id;

@@ -1,8 +1,10 @@
 package com.example.CoreCommerce.entity;
 
+import com.example.CoreCommerce.dto.ItemPedidoDTO;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 
+import java.net.ProtocolFamily;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -73,5 +75,6 @@ public class Pedido {
     public Double getValorTotal() {
         return this.getValorTotal();
     }
+
 }
 

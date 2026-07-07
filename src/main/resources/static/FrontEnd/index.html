@@ -256,33 +256,35 @@
       </div>
 
       <!-- ── PRODUTOS ── -->
-     <div data-page="produtos">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
-    <div>
-      <h2 style="font-size:20px;font-weight:500">Produtos</h2>
-      <p style="color:var(--text3);font-size:13px">Catálogo e controle de estoque</p>
-    </div>
-    <button class="btn btn-primary" onclick="openModal('modalNovoProduto')">+ Novo Produto</button>
-  </div>
-  <div class="card">
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>SKU</th>
-            <th>Preço</th>
-            <th>Marca</th>
-            <th>Quantidade Estoque</th>
-            <th>Categoria</th>
-            <th>Ações</th> </tr>
-        </thead>
-        <tbody id="tabelaProdutos">
-          <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr> </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+      <div data-page="produtos">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+          <div>
+            <h2 style="font-size:20px;font-weight:500">Produtos</h2>
+            <p style="color:var(--text3);font-size:13px">Catálogo e controle de estoque</p>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('modalNovoProduto')">+ Novo Produto</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>SKU</th>
+                  <th>Preço</th>
+                  <th>Marca</th>
+                  <th>Quantidade Estoque</th>
+                  <th>Categoria</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaProdutos">
+                <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       <!-- ── CLIENTES ── -->
       <div data-page="clientes">
@@ -306,26 +308,21 @@
       </div>
 
       <div class="modal-overlay" id="modalEditarCliente">
-  <div class="modal">
-    <h3>Editar E-mail do Cliente</h3>
-
-    <label>Nome</label>
-    <input type="text" id="editCliNome" disabled>
-
-    <label>CPF</label>
-    <input type="text" id="editCliCpf" disabled>
-
-    <label>E-mail</label>
-    <input type="email" id="editCliEmail">
-
-    <input type="hidden" id="editCliId">
-
-    <div style="display:flex; gap:8px; margin-top:16px">
-      <button class="btn btn-ghost" onclick="closeModal('modalEditarCliente')">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarEmailCliente()">Salvar E-mail</button>
-    </div>
-  </div>
-</div>
+        <div class="modal">
+          <h3>Editar E-mail do Cliente</h3>
+          <label>Nome</label>
+          <input type="text" id="editCliNome" disabled>
+          <label>CPF</label>
+          <input type="text" id="editCliCpf" disabled>
+          <label>E-mail</label>
+          <input type="email" id="editCliEmail">
+          <input type="hidden" id="editCliId">
+          <div style="display:flex; gap:8px; margin-top:16px">
+            <button class="btn btn-ghost" onclick="closeModal('modalEditarCliente')">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarEmailCliente()">Salvar E-mail</button>
+          </div>
+        </div>
+      </div>
 
     </div><!-- /content -->
   </div><!-- /main -->
@@ -441,6 +438,34 @@
     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modalNovoCliente')">Cancelar</button>
       <button class="btn btn-primary" onclick="criarCliente()">Salvar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Itens do Pedido -->
+<div class="modal-overlay" id="modalItensPedido">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">Itens do Pedido <span id="itensPedidoNumero" style="color:var(--text3);font-weight:400"></span></div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalItensPedido')">✕</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th style="text-align:center">Qtd</th>
+            <th>Preço Unit.</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaItensPedido">
+          <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:16px;text-align:right">
+      <button class="btn btn-ghost" onclick="closeModal('modalItensPedido')">Fechar</button>
     </div>
   </div>
 </div>
