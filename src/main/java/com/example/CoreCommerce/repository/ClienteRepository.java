@@ -3,6 +3,8 @@ package com.example.CoreCommerce.repository;
 import com.example.CoreCommerce.entity.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface ClienteRepository extends JpaRepository <Cliente, Long> {
 
     boolean existsClienteByEmail(String email);
@@ -10,4 +12,6 @@ public interface ClienteRepository extends JpaRepository <Cliente, Long> {
     boolean existsClienteByCpf(String cpf);
 
     Cliente deleteClienteById(Long id);
+
+    List<Cliente> findAllByOrderByNomeAsc();
 }

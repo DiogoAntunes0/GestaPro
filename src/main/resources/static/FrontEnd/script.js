@@ -58,6 +58,10 @@ function showRegister() {
   document.getElementById('registerForm').style.display = 'block';
 }
 
+function limparCPF(valor) {
+  return (valor || '').replace(/\D/g, ''); // remove tudo que não é número
+}
+
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const senha = document.getElementById('loginPassword').value;
@@ -84,7 +88,7 @@ async function doLogin() {
 async function doRegister() {
   const nome    = document.getElementById('regNome').value.trim();
   const email   = document.getElementById('regEmail').value.trim();
-  const cpf     = document.getElementById('regCpf').value.trim();
+  const cpf = limparCPF(document.getElementById('regCpf').value);
   const senha   = document.getElementById('regSenha').value;
   const confirm = document.getElementById('regConfirm').value;
   const errEl   = document.getElementById('registerError');
@@ -232,7 +236,7 @@ function maskCPF(el) {
 async function criarCliente() {
   const nome  = document.getElementById('cliNome').value.trim();
   const email = document.getElementById('cliEmail').value.trim();
-  const cpf   = document.getElementById('cliCpf').value.trim();
+  const cpf = limparCPF(document.getElementById('cliCpf').value);
   if (!nome || !email || !cpf) { showToast('error', 'Preencha todos os campos'); return; }
 
   try {
@@ -545,21 +549,19 @@ async function criarPedido() {
   };
 
   try {
-    const novo = await apiFetch('/api/pedidos', {
+    await apiFetch('/api/pedidos', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
 
-    state.pedidos.unshift(novo);
+    // busca os dados atualizados e corretos direto do backend
+    const [pedidosAtualizados, produtosAtualizados] = await Promise.all([
+      apiFetch('/api/pedidos/listar'),
+      apiFetch('/api/produtos/listar')
+    ]);
 
-    state.cart.forEach(item => {
-      const prod = state.produtos.find(p => p.id === item.produtoId);
-      if (prod) {
-        const campo = 'quantidadeEstoque' in prod ? 'quantidadeEstoque'
-          : ('qtdEstoque' in prod ? 'qtdEstoque' : ('estoque' in prod ? 'estoque' : 'quantity'));
-        prod[campo] -= item.quantidade;
-      }
-    });
+    state.pedidos  = Array.isArray(pedidosAtualizados) ? pedidosAtualizados : (pedidosAtualizados.content || pedidosAtualizados.data || []);
+    state.produtos = Array.isArray(produtosAtualizados) ? produtosAtualizados : (produtosAtualizados.content || produtosAtualizados.data || []);
 
     state.cart = [];
     closeModal('modalNovoPedido');
