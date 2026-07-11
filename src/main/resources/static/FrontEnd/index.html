@@ -244,6 +244,13 @@
             <div class="tab" onclick="filterPedidos('PAGO', this)">Pagos</div>
             <div class="tab" onclick="filterPedidos('CANCELADO', this)">Cancelados</div>
           </div>
+
+          <!-- BUSCA: Pedidos por nome do cliente -->
+          <div class="search-bar">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="buscaPedidos" placeholder="Buscar pedido pelo nome do cliente..." oninput="buscarNaTabela('tabelaPedidos', 1, this.value)">
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead><tr><th>#</th><th>Cliente</th><th>Data</th><th>Itens</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
@@ -252,6 +259,7 @@
               </tbody>
             </table>
           </div>
+          <div id="semResultadoPedidos" class="sem-resultado hidden">Nenhum pedido encontrado para esse cliente.</div>
         </div>
       </div>
 
@@ -265,6 +273,13 @@
           <button class="btn btn-primary" onclick="openModal('modalNovoProduto')">+ Novo Produto</button>
         </div>
         <div class="card">
+
+          <!-- BUSCA: Produtos por nome -->
+          <div class="search-bar">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="buscaProdutos" placeholder="Buscar produto pelo nome..." oninput="buscarNaTabela('tabelaProdutos', 0, this.value)">
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead>
@@ -283,6 +298,7 @@
               </tbody>
             </table>
           </div>
+          <div id="semResultadoProdutos" class="sem-resultado hidden">Nenhum produto encontrado com esse nome.</div>
         </div>
       </div>
 
@@ -296,6 +312,13 @@
           <button class="btn btn-primary" onclick="openModal('modalNovoCliente')">+ Novo Cliente</button>
         </div>
         <div class="card">
+
+          <!-- BUSCA: Clientes por CPF -->
+          <div class="search-bar">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="buscaClientes" placeholder="Buscar cliente pelo CPF..." maxlength="14" oninput="maskCPF(this); buscarNaTabela('tabelaClientes', 2, this.value)">
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead><tr><th>Nome</th><th>E-mail</th><th>CPF</th><th>Cadastro</th><th>Ações</th></tr></thead>
@@ -304,6 +327,7 @@
               </tbody>
             </table>
           </div>
+          <div id="semResultadoClientes" class="sem-resultado hidden">Nenhum cliente encontrado com esse CPF.</div>
         </div>
       </div>
 
@@ -472,5 +496,103 @@
 
 <!-- Toast container -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- ══════════════════════════════════════════════════
+     BUSCA — estilo e lógica das abas de busca
+     (Produtos por nome / Clientes por CPF / Pedidos por cliente)
+═══════════════════════════════════════════════════ -->
+<style>
+  .search-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--bg3);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:10px 14px;
+    margin-bottom:16px;
+  }
+  .search-bar:focus-within{
+    border-color:var(--accent2);
+  }
+  .search-icon{
+    width:16px;
+    height:16px;
+    flex-shrink:0;
+    color:var(--text3);
+  }
+  .search-bar input{
+    border:none;
+    background:transparent;
+    outline:none;
+    width:100%;
+    font-family:inherit;
+    font-size:13px;
+    color:var(--text1);
+    padding:0;
+  }
+  .sem-resultado{
+    text-align:center;
+    color:var(--text3);
+    font-size:13px;
+    padding:24px;
+  }
+  .hidden{ display:none; }
+</style>
+
+<script>
+/**
+ * Filtra as linhas de uma tabela (tbody) de acordo com o texto digitado,
+ * comparando com o conteúdo de uma coluna específica (colIndex, 0-based).
+ * Funciona em cima do que já está renderizado na tela — não depende
+ * de como script.js populou a tabela.
+ *
+ * tbodyId   -> id do <tbody> (ex: 'tabelaProdutos')
+ * colIndex  -> índice da coluna a comparar (0 = primeira <td>)
+ * termo     -> texto digitado pelo usuário
+ */
+function buscarNaTabela(tbodyId, colIndex, termo) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  const termoLimpo = normalizarTexto(termo);
+  const linhas = Array.from(tbody.querySelectorAll('tr')).filter(
+    tr => !tr.querySelector('td[colspan]') // ignora linha de "carregando..." / "nenhum registro"
+  );
+
+  let visiveis = 0;
+
+  linhas.forEach(tr => {
+    const celula = tr.children[colIndex];
+    const valorCelula = celula ? normalizarTexto(celula.textContent) : '';
+    const bate = termoLimpo === '' || valorCelula.includes(termoLimpo);
+    tr.style.display = bate ? '' : 'none';
+    if (bate) visiveis++;
+  });
+
+  // mensagem de "nenhum resultado" por tabela
+  const idsSemResultado = {
+    tabelaProdutos: 'semResultadoProdutos',
+    tabelaClientes: 'semResultadoClientes',
+    tabelaPedidos: 'semResultadoPedidos'
+  };
+  const elSemResultado = document.getElementById(idsSemResultado[tbodyId]);
+  if (elSemResultado) {
+    elSemResultado.classList.toggle('hidden', !(termoLimpo !== '' && visiveis === 0 && linhas.length > 0));
+  }
+}
+
+// remove acentos, deixa minúsculo e tira espaços nas pontas
+// (CPF também remove pontuação, então "123.456" bate buscando "123456")
+function normalizarTexto(txt) {
+  return (txt || '')
+    .toString()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[.\-\/]/g, ''); // ignora pontuação de CPF ao comparar
+}
+</script>
+
 </body>
 </html>

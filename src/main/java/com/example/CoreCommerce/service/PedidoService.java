@@ -41,17 +41,19 @@ public class PedidoService {
             Produto produto = produtoRepository.findById(itemPedidoDTO.produtoId())
                     .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
 
+            produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - itemPedidoDTO.quantidade());
+            produtoRepository.save(produto);
+
             Double precoVenda = produto.getPreco();
 
             ItemPedido item = new ItemPedido(pedido, precoVenda, produto, itemPedidoDTO.quantidade());
 
             itensPedido.add(item);
             valorTotal += precoVenda * itemPedidoDTO.quantidade();
+            pedido.setValorTotal(valorTotal);
         }
 
         pedido.setItens(itensPedido);
-        pedido.setValorTotal(valorTotal);
-
         return pedidoRepository.save(pedido);
     }
 
@@ -69,7 +71,7 @@ public class PedidoService {
     }
 
     public List<PedidoResponseDTO> listarTodosPedidos() {
-        return pedidoRepository.findAll().stream()
+        return pedidoRepository.findAllByOrderByDataPedidoDesc().stream()
                 .map(this::toPedidoResponseDTO)
                 .toList();
     }

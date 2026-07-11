@@ -19,7 +19,7 @@ public class ProdutoService {
     private PropertyResolver propertyResolver;
 
     public List<ProdutoDTO> listarTodos(){
-        List<Produto> produtos = produtoRepository.findAll();
+        List<Produto> produtos = produtoRepository.findAllByOrderByNomeAsc();
 
         return produtos.stream()
                 .map(p -> new ProdutoDTO(

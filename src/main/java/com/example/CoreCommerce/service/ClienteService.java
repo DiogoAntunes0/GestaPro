@@ -42,7 +42,7 @@ public class ClienteService {
     }
 
     public List<ClienteDTO> listarClientes(){
-        List<Cliente> clientes = clienteRepository.findAll();
+        List<Cliente> clientes = clienteRepository.findAllByOrderByNomeAsc();
 
         return clientes.stream()
                 .map(c -> new ClienteDTO(
