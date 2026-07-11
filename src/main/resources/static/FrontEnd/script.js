@@ -24,16 +24,27 @@ let editingProdutoId = null;
    HELPER: fetch com autenticação
 ══════════════════════════════════════ */
 async function apiFetch(path, options = {}) {
+  // 1. Busca o token mais recente do localStorage
+  const token = localStorage.getItem('orderflow_token') || authToken;
+  
+  // 2. Prepara os cabeçalhos
   const headers = { 'Content-Type': 'application/json', ...options.headers };
-  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  
+  // 3. Se houver token, adiciona no formato Bearer
+  if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+  }
 
+  // 4. Dispara a requisição
   const res = await fetch(`${API}${path}`, { ...options, headers });
 
-  if (res.status === 401) {
+  // 5. Se o Spring Security barrar (401 ou 403), desloga o usuário
+  if (res.status === 401 || res.status === 403) {
     doLogout();
     throw new Error('Sessão expirada. Faça login novamente.');
   }
 
+  // 6. Extrai o JSON (mantido para não quebrar o resto do seu código)
   const text = await res.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch {}
