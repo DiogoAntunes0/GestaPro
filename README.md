@@ -38,6 +38,8 @@ com.gestapro.api
 ├── repository/      # Interfaces de comunicação com o banco de dados (Spring Data)
 ├── service/         # Camada de regras de negócio e lógica do sistema
 └── controller/      # Endpoints da API (REST Controllers)
+└── config/          # Configuração CORS (Cross-Origin Resource Sharing)
+└── security/        # Spring Security, autenticações e autorizações
 ```
 
 ---
@@ -53,8 +55,8 @@ com.gestapro.api
 
 1. **Clonar o repositório:**
    ```bash
-   git clone https://github.com/seu-usuario/gestapro-sistema-comercial.git
-   cd gestapro-sistema-comercial
+   git clone https://github.com/DiogoAntunes0/GestaPro.git
+   cd GestaPro
    ```
 
 2. **Configurar o banco de dados:**
@@ -77,7 +79,6 @@ O servidor iniciará por padrão na porta `8080` (http://localhost:8080).
 
 ## 📈 Próximos Passos (Roadmap)
 
-- [ ] Implementação de autenticação e controle de acesso (Spring Security).
 - [ ] Módulo de faturamento básico e geração de relatórios de vendas.
 - [ ] Integração com APIs externas para consulta de CEP no cadastro de clientes.
 - [ ] Cadastro completo, atualização e listagem de clientes (Pessoa Jurídica) 
