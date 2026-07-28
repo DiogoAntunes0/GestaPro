@@ -1,4 +1,4 @@
-package com.example.CoreCommerce.Security;
+package com.example.CoreCommerce.security;
 
 import com.example.CoreCommerce.entity.Usuario;
 import com.example.CoreCommerce.repository.UsuarioRepository;

@@ -1,6 +1,5 @@
 package com.example.CoreCommerce.service;
 
-import com.example.CoreCommerce.Security.JwtService;
 import com.example.CoreCommerce.dto.UsuarioDTO;
 import com.example.CoreCommerce.exception.CpfExistente;
 import com.example.CoreCommerce.exception.EmailExistente;
@@ -15,8 +14,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 
 @Service

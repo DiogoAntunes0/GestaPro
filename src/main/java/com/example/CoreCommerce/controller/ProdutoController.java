@@ -4,10 +4,14 @@ import com.example.CoreCommerce.dto.ProdutoDTO;
 import com.example.CoreCommerce.entity.Produto;
 import com.example.CoreCommerce.service.ProdutoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
 
 @RestController
 @RequestMapping("/api")
@@ -17,8 +21,9 @@ public class ProdutoController {
     ProdutoService produtoService;
 
     @GetMapping("/produtos/listar")
-    public List<ProdutoDTO> listarProdutos(){
-        return produtoService.listarTodos();
+    public Page<ProdutoDTO> listarProdutos(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page, size);
+        return produtoService.listarTodos(pageable);
     }
 
     @PostMapping("/produtos/cadastrar")
