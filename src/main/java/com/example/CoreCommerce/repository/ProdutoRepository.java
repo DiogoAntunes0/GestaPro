@@ -8,4 +8,5 @@ import java.util.List;
 public interface ProdutoRepository extends JpaRepository <Produto, Long> {
     Produto deleteProdutosById(Long id);
     List<Produto> findAllByOrderByNomeAsc();
+
 }

@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="paginacao.css">
 <script src="script.js"></script>
 </head>
 <body>
@@ -245,10 +246,11 @@
             <div class="tab" onclick="filterPedidos('CANCELADO', this)">Cancelados</div>
           </div>
 
-          <!-- BUSCA: Pedidos por nome do cliente -->
+          <!-- BUSCA: Pedidos por nome do cliente
+               OBS: filtra apenas os pedidos já carregados na página atual -->
           <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="buscaPedidos" placeholder="Buscar pedido pelo nome do cliente..." oninput="buscarNaTabela('tabelaPedidos', 1, this.value)">
+            <input type="text" id="buscaPedidos" placeholder="Buscar pedido pelo nome do cliente (nesta página)..." oninput="buscarNaTabela('tabelaPedidos', 1, this.value)">
           </div>
 
           <div class="table-wrap">
@@ -260,6 +262,9 @@
             </table>
           </div>
           <div id="semResultadoPedidos" class="sem-resultado hidden">Nenhum pedido encontrado para esse cliente.</div>
+
+          <!-- Paginação -->
+          <div id="paginacao-pedidos"></div>
         </div>
       </div>
 
@@ -274,10 +279,11 @@
         </div>
         <div class="card">
 
-          <!-- BUSCA: Produtos por nome -->
+          <!-- BUSCA: Produtos por nome
+               OBS: filtra apenas os produtos já carregados na página atual -->
           <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="buscaProdutos" placeholder="Buscar produto pelo nome..." oninput="buscarNaTabela('tabelaProdutos', 0, this.value)">
+            <input type="text" id="buscaProdutos" placeholder="Buscar produto pelo nome (nesta página)..." oninput="buscarNaTabela('tabelaProdutos', 0, this.value)">
           </div>
 
           <div class="table-wrap">
@@ -299,6 +305,9 @@
             </table>
           </div>
           <div id="semResultadoProdutos" class="sem-resultado hidden">Nenhum produto encontrado com esse nome.</div>
+
+          <!-- Paginação -->
+          <div id="paginacao-produtos"></div>
         </div>
       </div>
 
@@ -313,10 +322,11 @@
         </div>
         <div class="card">
 
-          <!-- BUSCA: Clientes por CPF -->
+          <!-- BUSCA: Clientes por CPF
+               OBS: filtra apenas os clientes já carregados na página atual -->
           <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="buscaClientes" placeholder="Buscar cliente pelo CPF..." maxlength="14" oninput="maskCPF(this); buscarNaTabela('tabelaClientes', 2, this.value)">
+            <input type="text" id="buscaClientes" placeholder="Buscar cliente pelo CPF (nesta página)..." maxlength="14" oninput="maskCPF(this); buscarNaTabela('tabelaClientes', 2, this.value)">
           </div>
 
           <div class="table-wrap">
@@ -328,6 +338,9 @@
             </table>
           </div>
           <div id="semResultadoClientes" class="sem-resultado hidden">Nenhum cliente encontrado com esse CPF.</div>
+
+          <!-- Paginação -->
+          <div id="paginacao-clientes"></div>
         </div>
       </div>
 
@@ -497,10 +510,6 @@
 <!-- Toast container -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ══════════════════════════════════════════════════
-     BUSCA — estilo e lógica das abas de busca
-     (Produtos por nome / Clientes por CPF / Pedidos por cliente)
-═══════════════════════════════════════════════════ -->
 <style>
   .search-bar{
     display:flex;
@@ -547,6 +556,9 @@
  * Funciona em cima do que já está renderizado na tela — não depende
  * de como script.js populou a tabela.
  *
+ * IMPORTANTE: com a paginação do backend, isso filtra apenas os
+ * registros da página atual, não a base inteira.
+ *
  * tbodyId   -> id do <tbody> (ex: 'tabelaProdutos')
  * colIndex  -> índice da coluna a comparar (0 = primeira <td>)
  * termo     -> texto digitado pelo usuário
@@ -579,6 +591,18 @@ function buscarNaTabela(tbodyId, colIndex, termo) {
   const elSemResultado = document.getElementById(idsSemResultado[tbodyId]);
   if (elSemResultado) {
     elSemResultado.classList.toggle('hidden', !(termoLimpo !== '' && visiveis === 0 && linhas.length > 0));
+  }
+
+  // Enquanto uma busca estiver ativa, esconde a paginação
+  // (não faz sentido "próxima página" filtrando apenas o que já está na tela)
+  const idsPaginacao = {
+    tabelaProdutos: 'paginacao-produtos',
+    tabelaClientes: 'paginacao-clientes',
+    tabelaPedidos: 'paginacao-pedidos'
+  };
+  const elPaginacao = document.getElementById(idsPaginacao[tbodyId]);
+  if (elPaginacao) {
+    elPaginacao.style.display = termoLimpo !== '' ? 'none' : '';
   }
 }
 

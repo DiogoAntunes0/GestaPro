@@ -6,9 +6,9 @@ import com.example.CoreCommerce.repository.ProdutoRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.PropertyResolver;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class ProdutoService {
@@ -18,11 +18,11 @@ public class ProdutoService {
     @Autowired
     private PropertyResolver propertyResolver;
 
-    public List<ProdutoDTO> listarTodos(){
-        List<Produto> produtos = produtoRepository.findAllByOrderByNomeAsc();
+    public Page<ProdutoDTO> listarTodos(Pageable pageable){
 
-        return produtos.stream()
-                .map(p -> new ProdutoDTO(
+        Page<Produto> paginaDeEntidades = produtoRepository.findAll(pageable);
+
+        return paginaDeEntidades.map(p -> new ProdutoDTO(
                         p.getId(),
                         p.getSku(),
                         p.getNomeProduto(),
@@ -30,8 +30,7 @@ public class ProdutoService {
                         p.getMarca(),
                         p.getPrecoProduto(),
                         p.getQuantidadeEstoque()
-                ))
-                .toList();
+                ));
     }
 
     public ProdutoDTO cadastrarProdutos(ProdutoDTO produtoDTO){

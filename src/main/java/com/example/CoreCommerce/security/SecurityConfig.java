@@ -1,7 +1,5 @@
-package com.example.CoreCommerce.Security;
+package com.example.CoreCommerce.security;
 
-import com.example.CoreCommerce.Security.UserDetailsServiceImpl;
-import com.example.CoreCommerce.Security.JwtFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +28,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(Customizer.withDefaults()) // <-- ADICIONE APENAS ESTA LINHA!
+
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -52,7 +51,6 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        // Passamos o serviço diretamente no construtor
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder()); // E adicionamos a senha depois
         return provider;

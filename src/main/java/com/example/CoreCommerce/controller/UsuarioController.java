@@ -1,5 +1,5 @@
 package com.example.CoreCommerce.controller;
-import com.example.CoreCommerce.Security.JwtService;
+import com.example.CoreCommerce.security.JwtService;
 import com.example.CoreCommerce.dto.TokenResponseDTO;
 import com.example.CoreCommerce.dto.UsuarioDTO;
 import com.example.CoreCommerce.service.UsuarioService;
@@ -37,7 +37,7 @@ public class UsuarioController {
 
         String tokenJwt = jwtService.gerarToken(usuario.email());
 
-        return ResponseEntity.ok(new TokenResponseDTO(tokenJwt));
+        return ResponseEntity.ok(new TokenResponseDTO(tokenJwt, usuarioDTO.email()));
 
   }
 

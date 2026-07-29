@@ -1,4 +1,4 @@
-package com.example.CoreCommerce.Security;
+package com.example.CoreCommerce.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -22,6 +22,7 @@ public class JwtService {
     public String gerarToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
+                .setIssuer("API GestaPro")
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getKey())

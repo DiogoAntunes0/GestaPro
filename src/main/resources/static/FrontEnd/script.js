@@ -21,6 +21,22 @@ let state = {
 let editingProdutoId = null;
 
 /* ══════════════════════════════════════
+   PAGINAÇÃO
+   Um controle de página por entidade
+══════════════════════════════════════ */
+const paginacao = {
+  clientes: { pagina: 0, tamanho: 10, totalPaginas: 0, totalElementos: 0 },
+  produtos: { pagina: 0, tamanho: 10, totalPaginas: 0, totalElementos: 0 },
+  pedidos:  { pagina: 0, tamanho: 10, totalPaginas: 0, totalElementos: 0 }
+};
+
+const ENDPOINTS_LISTAR = {
+  clientes: '/api/clientes/listar',
+  produtos: '/api/produtos/listar',
+  pedidos:  '/api/pedidos/listar'
+};
+
+/* ══════════════════════════════════════
    HELPER: fetch com autenticação
 ══════════════════════════════════════ */
 async function apiFetch(path, options = {}) {
@@ -156,6 +172,9 @@ function doLogout() {
   state.clientes = [];
   state.produtos = [];
   state.pedidos = [];
+  paginacao.clientes.pagina = 0;
+  paginacao.produtos.pagina = 0;
+  paginacao.pedidos.pagina = 0;
   localStorage.removeItem('orderflow_token');
   localStorage.removeItem('orderflow_user');
   document.getElementById('mainApp').classList.add('hidden');
@@ -166,20 +185,143 @@ function doLogout() {
 }
 
 /* ══════════════════════════════════════
-   CARREGAMENTO INICIAL (API)
+   CARREGAMENTO PAGINADO (API)
 ══════════════════════════════════════ */
+
+// Busca uma página específica de uma entidade ('clientes' | 'produtos' | 'pedidos')
+async function carregarPagina(entidade) {
+  const p = paginacao[entidade];
+  const endpoint = ENDPOINTS_LISTAR[entidade];
+
+  try {
+    const dados = await apiFetch(`${endpoint}?page=${p.pagina}&size=${p.tamanho}`);
+
+    // Compatível tanto com Page<T> do Spring quanto com array puro
+    const conteudo = Array.isArray(dados) ? dados : (dados.content || dados.data || []);
+    state[entidade] = conteudo;
+
+    if (!Array.isArray(dados)) {
+      // Resposta paginada do Spring (Page<T>)
+      p.totalPaginas = dados.totalPages ?? 0;
+      atualizarControlesPaginacao(entidade, dados);
+    } else {
+      // Fallback: backend não pagina, esconde os controles
+      p.totalPaginas = 1;
+      atualizarControlesPaginacao(entidade, { number: 0, totalPages: 1, first: true, last: true });
+    }
+  } catch (err) {
+    state[entidade] = [];
+    showToast('error', `Erro ao carregar ${entidade}`);
+  }
+}
+
+function atualizarControlesPaginacao(entidade, dados) {
+  paginacao[entidade].totalElementos = dados.totalElements ?? state[entidade].length;
+  renderPaginacao(entidade);
+}
+
+/* ── Componente de paginação (renderizado dinamicamente) ──
+   Requer apenas uma div no HTML: <div id="paginacao-clientes"></div>
+   (troque "clientes" por "produtos" / "pedidos" em cada seção)          */
+function renderPaginacao(entidade) {
+  const container = document.getElementById(`paginacao-${entidade}`);
+  if (!container) return; // div ainda não existe no HTML dessa seção
+
+  const p = paginacao[entidade];
+  const paginaAtual  = p.pagina;       // 0-indexed
+  const totalPaginas = p.totalPaginas || 1;
+
+  if (totalPaginas <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  // Calcula o range de itens sendo exibidos (ex: "Mostrando 11–20 de 47")
+  const inicio = paginaAtual * p.tamanho + 1;
+  const fim    = Math.min(inicio + p.tamanho - 1, p.totalElementos);
+
+  // Gera a lista de números de página a exibir, com "..." quando há muitas
+  const paginas = gerarRangePaginas(paginaAtual, totalPaginas);
+
+  const botoesNumeros = paginas.map(pg => {
+    if (pg === '...') {
+      return `<span class="pg-ellipsis">···</span>`;
+    }
+    const ativo = pg === paginaAtual;
+    return `<button class="pg-num ${ativo ? 'active' : ''}" ${ativo ? 'disabled' : ''} onclick="irParaPagina('${entidade}', ${pg})">${pg + 1}</button>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="paginacao-bar">
+      <span class="pg-info">${p.totalElementos ? `Mostrando ${inicio}–${fim} de ${p.totalElementos}` : ''}</span>
+      <div class="pg-controles">
+        <button class="pg-nav" ${paginaAtual === 0 ? 'disabled' : ''} onclick="mudarPagina('${entidade}', -1)" title="Página anterior">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="pg-numeros">${botoesNumeros}</div>
+        <button class="pg-nav" ${paginaAtual >= totalPaginas - 1 ? 'disabled' : ''} onclick="mudarPagina('${entidade}', 1)" title="Próxima página">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Decide quais números mostrar: sempre 1ª, última, atual ±1, com "..." no meio
+function gerarRangePaginas(atual, total) {
+  const janela = 1; // quantas páginas mostrar de cada lado da atual
+  const paginas = [];
+
+  for (let i = 0; i < total; i++) {
+    const ehExtremidade = i === 0 || i === total - 1;
+    const ehVizinha = Math.abs(i - atual) <= janela;
+
+    if (ehExtremidade || ehVizinha) {
+      paginas.push(i);
+    } else if (paginas[paginas.length - 1] !== '...') {
+      paginas.push('...');
+    }
+  }
+  return paginas;
+}
+
+// Clique direto em um número de página
+async function irParaPagina(entidade, numeroPagina) {
+  const p = paginacao[entidade];
+  if (numeroPagina === p.pagina || numeroPagina < 0 || numeroPagina >= p.totalPaginas) return;
+
+  p.pagina = numeroPagina;
+  await carregarPagina(entidade);
+  rerenderTabela(entidade);
+}
+
+// Chamado pelos botões "Anterior" / "Próximo" de cada tabela
+async function mudarPagina(entidade, direcao) {
+  const p = paginacao[entidade];
+  const novaPagina = p.pagina + direcao;
+
+  if (novaPagina < 0 || novaPagina >= p.totalPaginas) return;
+
+  p.pagina = novaPagina;
+  await carregarPagina(entidade);
+  rerenderTabela(entidade);
+}
+
+function rerenderTabela(entidade) {
+  if (entidade === 'clientes') renderClientes();
+  if (entidade === 'produtos') renderProdutos();
+  if (entidade === 'pedidos')  renderPedidos();
+
+  // Dashboard depende de pedidos/produtos/clientes, então atualiza também
+  renderDashboard();
+}
+
 async function loadAll() {
-  const safe = (promise) => promise.catch(() => []);
-
-  const [clientes, produtos, pedidos] = await Promise.all([
-    safe(apiFetch('/api/clientes/listar')),
-    safe(apiFetch('/api/produtos/listar')),
-    safe(apiFetch('/api/pedidos/listar'))
+  await Promise.all([
+    carregarPagina('clientes'),
+    carregarPagina('produtos'),
+    carregarPagina('pedidos')
   ]);
-
-  state.clientes = Array.isArray(clientes) ? clientes : (clientes.content || clientes.data || []);
-  state.produtos = Array.isArray(produtos) ? produtos : (produtos.content || produtos.data || []);
-  state.pedidos  = Array.isArray(pedidos)  ? pedidos  : (pedidos.content  || pedidos.data  || []);
 
   renderAll();
 }
@@ -251,12 +393,15 @@ async function criarCliente() {
   if (!nome || !email || !cpf) { showToast('error', 'Preencha todos os campos'); return; }
 
   try {
-    const novo = await apiFetch('/api/clientes/cadastrar', {
+    await apiFetch('/api/clientes/cadastrar', {
       method: 'POST',
       body: JSON.stringify({ nome, email, cpf })
     });
 
-    state.clientes.push(novo);
+    // Volta para a primeira página e recarrega para refletir o novo registro
+    paginacao.clientes.pagina = 0;
+    await carregarPagina('clientes');
+
     closeModal('modalNovoCliente');
     renderAll();
     document.getElementById('cliNome').value  = '';
@@ -315,17 +460,13 @@ async function salvarEmailCliente() {
   if (!email) { showToast('error', 'Informe um e-mail válido'); return; }
 
   try {
-    const atualizado = await apiFetch(`/api/clientes/editar/email/${id}`, {
+    await apiFetch(`/api/clientes/editar/email/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({ id: parseInt(id), email })
     });
 
-    const idx = state.clientes.findIndex(c => String(c.id) === String(id));
-    if (idx !== -1) {
-      state.clientes[idx] = atualizado && typeof atualizado === 'object'
-        ? { ...state.clientes[idx], ...atualizado }
-        : { ...state.clientes[idx], email };
-    }
+    // Recarrega a página atual para refletir a alteração
+    await carregarPagina('clientes');
 
     closeModal('modalEditarCliente');
     renderAll();
@@ -338,7 +479,13 @@ async function salvarEmailCliente() {
 async function removeCliente(id) {
   try {
     await apiFetch(`/api/clientes/${id}`, { method: 'DELETE' });
-    state.clientes = state.clientes.filter(c => c.id !== id);
+
+    // Se era o último item da página e não é a primeira, volta uma página
+    if (state.clientes.length === 1 && paginacao.clientes.pagina > 0) {
+      paginacao.clientes.pagina -= 1;
+    }
+    await carregarPagina('clientes');
+
     renderAll();
     showToast('success', 'Cliente removido.');
   } catch (err) {
@@ -393,28 +540,27 @@ async function criarProduto() {
 
   try {
     if (editingProdutoId) {
-      const atualizado = await apiFetch(`/api/produtos/editar/${editingProdutoId}`, {
+      await apiFetch(`/api/produtos/editar/${editingProdutoId}`, {
         method: 'PUT',
         body: JSON.stringify(payload)
       });
 
-      const idx = state.produtos.findIndex(p => String(p.id) === String(editingProdutoId));
-      if (idx !== -1) {
-        state.produtos[idx] = atualizado && typeof atualizado === 'object'
-          ? { ...state.produtos[idx], ...atualizado }
-          : { ...state.produtos[idx], ...payload };
-      }
+      // Recarrega a página atual para refletir a alteração
+      await carregarPagina('produtos');
 
       closeModal('modalNovoProduto');
       renderAll();
       showToast('success', 'Produto atualizado!');
     } else {
-      const novo = await apiFetch('/api/produtos/cadastrar', {
+      await apiFetch('/api/produtos/cadastrar', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
 
-      state.produtos.push(novo);
+      // Volta para a primeira página e recarrega para refletir o novo registro
+      paginacao.produtos.pagina = 0;
+      await carregarPagina('produtos');
+
       closeModal('modalNovoProduto');
       renderAll();
       showToast('success', 'Produto cadastrado!');
@@ -460,7 +606,12 @@ function renderProdutos() {
 async function removeProduto(id) {
   try {
     await apiFetch(`/api/produtos/${id}`, { method: 'DELETE' });
-    state.produtos = state.produtos.filter(p => p.id !== id);
+
+    if (state.produtos.length === 1 && paginacao.produtos.pagina > 0) {
+      paginacao.produtos.pagina -= 1;
+    }
+    await carregarPagina('produtos');
+
     renderAll();
     showToast('success', 'Produto removido.');
   } catch (err) {
@@ -565,14 +716,12 @@ async function criarPedido() {
       body: JSON.stringify(payload)
     });
 
-    // busca os dados atualizados e corretos direto do backend
-    const [pedidosAtualizados, produtosAtualizados] = await Promise.all([
-      apiFetch('/api/pedidos/listar'),
-      apiFetch('/api/produtos/listar')
+    // busca as páginas atuais atualizadas direto do backend
+    paginacao.pedidos.pagina = 0;
+    await Promise.all([
+      carregarPagina('pedidos'),
+      carregarPagina('produtos')
     ]);
-
-    state.pedidos  = Array.isArray(pedidosAtualizados) ? pedidosAtualizados : (pedidosAtualizados.content || pedidosAtualizados.data || []);
-    state.produtos = Array.isArray(produtosAtualizados) ? produtosAtualizados : (produtosAtualizados.content || produtosAtualizados.data || []);
 
     state.cart = [];
     closeModal('modalNovoPedido');
