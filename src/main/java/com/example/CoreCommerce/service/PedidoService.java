@@ -7,6 +7,8 @@ import com.example.CoreCommerce.dto.PedidoResponseDTO;
 import com.example.CoreCommerce.entity.*;
 import com.example.CoreCommerce.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,10 +72,14 @@ public class PedidoService {
                 .toList();
     }
 
-    public List<PedidoResponseDTO> listarTodosPedidos() {
-        return pedidoRepository.findAllByOrderByDataPedidoDesc().stream()
-                .map(this::toPedidoResponseDTO)
-                .toList();
+    public Page<PedidoResponseDTO> listarTodosPedidos(Pageable pageable) {
+        //  return pedidoRepository.findAllByOrderByDataPedidoDesc().stream()
+        //                .map(this::toPedidoResponseDTO)
+        //                .toList();
+        Page<Pedido> paginaEncontradas = pedidoRepository.findAllByOrderByDataPedidoDesc(pageable);
+
+        return paginaEncontradas.map(this::toPedidoResponseDTO);
+
     }
 
     private PedidoResponseDTO toPedidoResponseDTO(Pedido pedido) {
