@@ -6,6 +6,9 @@ import com.example.CoreCommerce.dto.PedidoResponseDTO;
 import com.example.CoreCommerce.entity.Pedido;
 import com.example.CoreCommerce.service.PedidoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +31,8 @@ public class PedidoController {
     }
 
     @GetMapping("pedidos/listar")
-    public List<PedidoResponseDTO> listarPedidos() {
-        return pedidoService.listarTodosPedidos();
+    public Page<PedidoResponseDTO> listarPedidos(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return pedidoService.listarTodosPedidos(pageable);
     }
 }
