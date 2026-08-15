@@ -30,7 +30,7 @@ public class PedidoController {
         return pedidoService.listarItemPedido(id);
     }
 
-    @GetMapping("pedidos/listar")
+    @GetMapping("/pedidos/listar")
     public Page<PedidoResponseDTO> listarPedidos(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         return pedidoService.listarTodosPedidos(pageable);
