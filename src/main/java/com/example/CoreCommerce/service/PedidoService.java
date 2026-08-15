@@ -73,9 +73,11 @@ public class PedidoService {
     }
 
     public Page<PedidoResponseDTO> listarTodosPedidos(Pageable pageable) {
+
         //  return pedidoRepository.findAllByOrderByDataPedidoDesc().stream()
         //                .map(this::toPedidoResponseDTO)
         //                .toList();
+        
         Page<Pedido> paginaEncontradas = pedidoRepository.findAllByOrderByDataPedidoDesc(pageable);
 
         return paginaEncontradas.map(this::toPedidoResponseDTO);

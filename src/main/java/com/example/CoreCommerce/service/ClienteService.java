@@ -8,6 +8,8 @@ import com.example.CoreCommerce.entity.Cliente;
 import com.example.CoreCommerce.repository.ClienteRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -41,17 +43,17 @@ public class ClienteService {
                 clienteSalvo.getCpf());
     }
 
-    public List<ClienteDTO> listarClientes(){
-        List<Cliente> clientes = clienteRepository.findAllByOrderByNomeAsc();
+    public Page<ClienteDTO> listarClientes(Pageable pageable){
 
-        return clientes.stream()
-                .map(c -> new ClienteDTO(
+        var paginasEncontradas = clienteRepository.findAllByOrderByNomeAsc(pageable);
+
+        return paginasEncontradas.map(c -> new ClienteDTO(
                         c.getId(),
                         c.getNome(),
                         c.getEmail(),
                         c.getCpf()
-                ))
-                .toList();
+                ));
+
     }
 
     @Transactional
