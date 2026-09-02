@@ -20,6 +20,9 @@ let state = {
 // ID do produto sendo editado (null = modo "novo")
 let editingProdutoId = null;
 
+// Tipo de documento selecionado no modal de Novo Cliente ('CPF' | 'CNPJ')
+let tipoClienteAtual = 'CPF';
+
 /* ══════════════════════════════════════
    PAGINAÇÃO
    Um controle de página por entidade
@@ -349,6 +352,7 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modalNovoPedido') { state.cart = []; renderCart(); }
   if (id === 'modalNovoProduto') { resetProdutoForm(); }
+  if (id === 'modalNovoCliente') { resetClienteForm(); }
 }
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) {
@@ -372,7 +376,7 @@ function showToast(type, msg) {
 }
 
 /* ══════════════════════════════════════
-   MASK
+   MASKS — CPF / CNPJ / CEP
 ══════════════════════════════════════ */
 function maskCPF(el) {
   let v = el.value.replace(/\D/g, '');
@@ -383,19 +387,109 @@ function maskCPF(el) {
   el.value = v;
 }
 
+function maskCNPJ(el) {
+  let v = el.value.replace(/\D/g, '');
+  if (v.length > 14) v = v.slice(0, 14);
+  v = v.replace(/(\d{2})(\d)/, '$1.$2');
+  v = v.replace(/(\d{3})(\d)/, '$1.$2');
+  v = v.replace(/(\d{3})(\d)/, '$1/$2');
+  v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  el.value = v;
+}
+
+function maskCEP(el) {
+  let v = el.value.replace(/\D/g, '');
+  if (v.length > 8) v = v.slice(0, 8);
+  v = v.replace(/(\d{5})(\d)/, '$1-$2');
+  el.value = v;
+}
+
+// Aplica a máscara certa no campo de documento do modal de cliente,
+// conforme o tipo (CPF/CNPJ) selecionado no momento
+function maskDocumento(el) {
+  if (tipoClienteAtual === 'CNPJ') maskCNPJ(el);
+  else maskCPF(el);
+}
+
 /* ══════════════════════════════════════
    CLIENTES
 ══════════════════════════════════════ */
+
+// Alterna entre Pessoa Física (CPF) e Pessoa Jurídica (CNPJ) no modal de Novo Cliente
+function toggleTipoCliente(tipo, el) {
+  tipoClienteAtual = tipo;
+
+  document.querySelectorAll('#tipoClienteTabs .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const nomeLabel = document.getElementById('cliNomeLabel');
+  const nomeInput = document.getElementById('cliNome');
+  const docLabel  = document.getElementById('cliDocLabel');
+  const docInput  = document.getElementById('cliDocumento');
+
+  docInput.value = ''; // evita enviar documento com formato/tamanho do tipo anterior
+
+  if (tipo === 'CNPJ') {
+    nomeLabel.textContent = 'Nome da empresa/Fantasia';
+    nomeInput.placeholder = 'Empresa Exemplo Ltda';
+    docLabel.textContent = 'CNPJ';
+    docInput.placeholder = '00.000.000/0000-00';
+    docInput.maxLength = 18;
+  } else {
+    nomeLabel.textContent = 'Nome completo';
+    nomeInput.placeholder = 'João da Silva';
+    docLabel.textContent = 'CPF';
+    docInput.placeholder = '000.000.000-00';
+    docInput.maxLength = 14;
+  }
+}
+
+function resetClienteForm() {
+  ['cliNome', 'cliEmail', 'cliDocumento', 'cliCep', 'cliEndereco', 'cliBairro', 'cliCidade', 'cliUf']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+
+  const tabCpf = document.querySelector('#tipoClienteTabs .tab[data-tipo="CPF"]');
+  toggleTipoCliente('CPF', tabCpf);
+}
+
 async function criarCliente() {
-  const nome  = document.getElementById('cliNome').value.trim();
-  const email = document.getElementById('cliEmail').value.trim();
-  const cpf = limparCPF(document.getElementById('cliCpf').value);
-  if (!nome || !email || !cpf) { showToast('error', 'Preencha todos os campos'); return; }
+  const nome      = document.getElementById('cliNome').value.trim();
+  const email     = document.getElementById('cliEmail').value.trim();
+  const documento = limparCPF(document.getElementById('cliDocumento').value); // remove pontuação, serve para CPF ou CNPJ
+
+  const endereco = {
+    cep: document.getElementById('cliCep').value.trim(),
+    logradouro: document.getElementById('cliEndereco').value.trim(),
+    bairro: document.getElementById('cliBairro').value.trim(),
+    cidade: document.getElementById('cliCidade').value.trim(),
+    uf: document.getElementById('cliUf').value.trim()
+  };
+
+  if (!nome || !email || !documento) {
+    showToast('error', 'Preencha todos os campos obrigatórios');
+    return;
+  }
+
+  // Validação da quantidade de dígitos conforme o tipo selecionado
+  const tamanhoEsperado = tipoClienteAtual === 'CNPJ' ? 14 : 11;
+  if (documento.length !== tamanhoEsperado) {
+    showToast('error', `${tipoClienteAtual} inválido: informe ${tamanhoEsperado} dígitos.`);
+    return;
+  }
 
   try {
     await apiFetch('/api/clientes/cadastrar', {
       method: 'POST',
-      body: JSON.stringify({ nome, email, cpf })
+      body: JSON.stringify({
+        nome,
+        email,
+        tipoDocumento: tipoClienteAtual, // 'CPF' ou 'CNPJ'
+        documento,
+        endereco
+      })
     });
 
     // Volta para a primeira página e recarrega para refletir o novo registro
@@ -404,9 +498,7 @@ async function criarCliente() {
 
     closeModal('modalNovoCliente');
     renderAll();
-    document.getElementById('cliNome').value  = '';
-    document.getElementById('cliEmail').value = '';
-    document.getElementById('cliCpf').value   = '';
+    resetClienteForm();
     showToast('success', 'Cliente cadastrado com sucesso!');
   } catch (err) {
     showToast('error', err.message || 'Erro ao cadastrar cliente');
@@ -423,7 +515,7 @@ function renderClientes() {
     const id       = c.id;
     const nome     = c.nome || c.name || '';
     const email    = c.email || '';
-    const cpf      = c.cpf || '';
+    const cpf      = c.documento || c.cpf || '';
     const cadastro = c.dataCadastro || c.createdAt || '';
     return `
     <tr>
@@ -447,7 +539,7 @@ function editarCliente(id) {
 
   document.getElementById('editCliId').value    = cli.id;
   document.getElementById('editCliNome').value  = cli.nome || cli.name || '';
-  document.getElementById('editCliCpf').value   = cli.cpf || '';
+  document.getElementById('editCliCpf').value   = cli.documento || cli.cpf || '';
   document.getElementById('editCliEmail').value = cli.email || '';
 
   openModal('modalEditarCliente');

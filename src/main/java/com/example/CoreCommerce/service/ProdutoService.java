@@ -20,7 +20,7 @@ public class ProdutoService {
 
     public Page<ProdutoDTO> listarTodos(Pageable pageable){
 
-        Page<Produto> paginaDeEntidades = produtoRepository.findAll(pageable);
+        Page<Produto> paginaDeEntidades = produtoRepository.findAllByOrderByNomeAsc(pageable);
 
         return paginaDeEntidades.map(p -> new ProdutoDTO(
                         p.getId(),
