@@ -322,22 +322,22 @@
         </div>
         <div class="card">
 
-          <!-- BUSCA: Clientes por CPF
+          <!-- BUSCA: Clientes por CPF/CNPJ
                OBS: filtra apenas os clientes já carregados na página atual -->
           <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="buscaClientes" placeholder="Buscar cliente pelo CPF (nesta página)..." maxlength="14" oninput="maskCPF(this); buscarNaTabela('tabelaClientes', 2, this.value)">
+            <input type="text" id="buscaClientes" placeholder="Buscar cliente pelo CPF/CNPJ (nesta página)..." maxlength="18" oninput="buscarNaTabela('tabelaClientes', 2, this.value)">
           </div>
 
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Nome</th><th>E-mail</th><th>CPF</th><th>Cadastro</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Nome</th><th>E-mail</th><th>CPF/CNPJ</th><th>Cadastro</th><th>Ações</th></tr></thead>
               <tbody id="tabelaClientes">
                 <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:40px">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
-          <div id="semResultadoClientes" class="sem-resultado hidden">Nenhum cliente encontrado com esse CPF.</div>
+          <div id="semResultadoClientes" class="sem-resultado hidden">Nenhum cliente encontrado com esse CPF/CNPJ.</div>
 
           <!-- Paginação -->
           <div id="paginacao-clientes"></div>
@@ -349,7 +349,7 @@
           <h3>Editar E-mail do Cliente</h3>
           <label>Nome</label>
           <input type="text" id="editCliNome" disabled>
-          <label>CPF</label>
+          <label>CPF/CNPJ</label>
           <input type="text" id="editCliCpf" disabled>
           <label>E-mail</label>
           <input type="email" id="editCliEmail">
@@ -458,9 +458,16 @@
       <div class="modal-title">Novo Cliente</div>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modalNovoCliente')">✕</button>
     </div>
+
+    <!-- Seletor Pessoa Física / Pessoa Jurídica -->
+    <div class="tabs" id="tipoClienteTabs" style="margin-bottom:16px">
+      <div class="tab active" data-tipo="CPF" onclick="toggleTipoCliente('CPF', this)">Pessoa Física (CPF)</div>
+      <div class="tab" data-tipo="CNPJ" onclick="toggleTipoCliente('CNPJ', this)">Pessoa Jurídica (CNPJ)</div>
+    </div>
+
     <div class="form-grid">
       <div class="form-group">
-        <label>Nome completo</label>
+        <label id="cliNomeLabel">Nome completo</label>
         <input type="text" id="cliNome" placeholder="João da Silva">
       </div>
       <div class="form-group">
@@ -468,10 +475,42 @@
         <input type="email" id="cliEmail" placeholder="joao@email.com">
       </div>
       <div class="form-group">
-        <label>CPF</label>
-        <input type="text" id="cliCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
+        <label id="cliDocLabel">CPF</label>
+        <input type="text" id="cliDocumento" placeholder="000.000.000-00" maxlength="14" oninput="maskDocumento(this)">
+      </div>
+
+      <div style="font-size:12px;font-weight:500;color:var(--text2);margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.06em">
+        Endereço de entrega
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>CEP</label>
+          <input type="text" id="cliCep" placeholder="00000-000" maxlength="9" oninput="maskCEP(this)">
+        </div>
+        <div class="form-group">
+          <label>Cidade</label>
+          <input type="text" id="cliCidade" placeholder="Ex: São Paulo">
+        </div>
+      </div>
+
+      <div class="form-grid form-grid-2">
+        <div class="form-group">
+          <label>Endereço (rua e número)</label>
+          <input type="text" id="cliEndereco" placeholder="Ex: Rua das Flores, 123">
+        </div>
+        <div class="form-group">
+          <label>Bairro</label>
+          <input type="text" id="cliBairro" placeholder="Ex: Centro">
+        </div>
+      </div>
+
+      <div class="form-group" style="max-width:120px">
+        <label>UF</label>
+        <input type="text" id="cliUf" placeholder="SP" maxlength="2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
       </div>
     </div>
+
     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modalNovoCliente')">Cancelar</button>
       <button class="btn btn-primary" onclick="criarCliente()">Salvar Cliente</button>
@@ -607,14 +646,14 @@ function buscarNaTabela(tbodyId, colIndex, termo) {
 }
 
 // remove acentos, deixa minúsculo e tira espaços nas pontas
-// (CPF também remove pontuação, então "123.456" bate buscando "123456")
+// (CPF/CNPJ também remove pontuação, então "123.456" bate buscando "123456")
 function normalizarTexto(txt) {
   return (txt || '')
     .toString()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
-    .replace(/[.\-\/]/g, ''); // ignora pontuação de CPF ao comparar
+    .replace(/[.\-\/]/g, ''); // ignora pontuação de CPF/CNPJ ao comparar
 }
 </script>
 
