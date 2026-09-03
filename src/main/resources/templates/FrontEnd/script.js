@@ -445,8 +445,11 @@ function toggleTipoCliente(tipo, el) {
 }
 
 function resetClienteForm() {
-  ['cliNome', 'cliEmail', 'cliDocumento', 'cliCep', 'cliEndereco', 'cliBairro', 'cliCidade', 'cliUf']
-    .forEach(id => {
+  [
+    'cliNome', 'cliEmail', 'cliDocumento',
+    'cliCep', 'cliLogradouro', 'cliComplemento', 'cliBairro',
+    'cliLocalidade', 'cliUf', 'cliEstado', 'cliRegiao'
+  ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -462,10 +465,13 @@ async function criarCliente() {
 
   const endereco = {
     cep: document.getElementById('cliCep').value.trim(),
-    logradouro: document.getElementById('cliEndereco').value.trim(),
+    logradouro: document.getElementById('cliLogradouro').value.trim(),
+    complemento: document.getElementById('cliComplemento').value.trim(),
     bairro: document.getElementById('cliBairro').value.trim(),
-    cidade: document.getElementById('cliCidade').value.trim(),
-    uf: document.getElementById('cliUf').value.trim()
+    localidade: document.getElementById('cliLocalidade').value.trim(),
+    uf: document.getElementById('cliUf').value.trim(),
+    estado: document.getElementById('cliEstado').value.trim(),
+    regiao: document.getElementById('cliRegiao').value.trim()
   };
 
   if (!nome || !email || !documento) {
@@ -480,16 +486,15 @@ async function criarCliente() {
     return;
   }
 
+  // Endpoint único — envia cpf ou cnpj no mesmo DTO, conforme o tipo selecionado
+  const payload = tipoClienteAtual === 'CNPJ'
+    ? { nome, email, cpf: null, cnpj: documento, endereco }
+    : { nome, email, cpf: documento, cnpj: null, endereco };
+
   try {
-    await apiFetch('/api/clientes/cadastrar', {
+    await apiFetch('/api/clientes/cadastrar/', {
       method: 'POST',
-      body: JSON.stringify({
-        nome,
-        email,
-        tipoDocumento: tipoClienteAtual, // 'CPF' ou 'CNPJ'
-        documento,
-        endereco
-      })
+      body: JSON.stringify(payload)
     });
 
     // Volta para a primeira página e recarrega para refletir o novo registro
@@ -515,13 +520,13 @@ function renderClientes() {
     const id       = c.id;
     const nome     = c.nome || c.name || '';
     const email    = c.email || '';
-    const cpf      = c.documento || c.cpf || '';
+    const doc      = c.cpf || c.cnpj || '';
     const cadastro = c.dataCadastro || c.createdAt || '';
     return `
     <tr>
       <td><span class="primary">${nome}</span></td>
       <td>${email}</td>
-      <td>${cpf}</td>
+      <td>${doc}</td>
       <td>${cadastro ? cadastro.split('T')[0] : ''}</td>
       <td>
         <div style="display:flex;gap:6px">
@@ -539,7 +544,7 @@ function editarCliente(id) {
 
   document.getElementById('editCliId').value    = cli.id;
   document.getElementById('editCliNome').value  = cli.nome || cli.name || '';
-  document.getElementById('editCliCpf').value   = cli.documento || cli.cpf || '';
+  document.getElementById('editCliCpf').value   = cli.cpf || cli.cnpj || '';
   document.getElementById('editCliEmail').value = cli.email || '';
 
   openModal('modalEditarCliente');

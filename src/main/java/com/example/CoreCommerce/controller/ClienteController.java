@@ -2,6 +2,7 @@ package com.example.CoreCommerce.controller;
 
 import com.example.CoreCommerce.dto.ClienteDTO;
 import com.example.CoreCommerce.dto.ClienteDTOEmail;
+import com.example.CoreCommerce.dto.ClienteListarDTO;
 import com.example.CoreCommerce.entity.Cliente;
 import com.example.CoreCommerce.service.ClienteService;
 import jakarta.validation.Valid;
@@ -11,8 +12,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api")
 public class ClienteController {
@@ -21,12 +20,12 @@ public class ClienteController {
     ClienteService clienteService;
 
     @GetMapping("/clientes/listar")
-        public Page<ClienteDTO> listarClientes(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        public Page<ClienteListarDTO> listarClientes(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
         Pageable pageable = PageRequest.of(page, size);
             return clienteService.listarClientes(pageable);
         }
 
-    @PostMapping("/clientes/cadastrar")
+    @PostMapping("/clientes/cadastrar/")
     public ClienteDTO cadastrarCliente(@Valid @RequestBody ClienteDTO clienteDTO){
         return clienteService.cadastrarCliente(clienteDTO);
     }
