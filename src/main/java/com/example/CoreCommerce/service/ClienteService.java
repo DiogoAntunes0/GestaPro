@@ -2,6 +2,8 @@ package com.example.CoreCommerce.service;
 
 import com.example.CoreCommerce.dto.ClienteDTO;
 import com.example.CoreCommerce.dto.ClienteDTOEmail;
+import com.example.CoreCommerce.dto.ClienteListarDTO;
+import com.example.CoreCommerce.entity.TipoPessoa;
 import com.example.CoreCommerce.exception.CpfClienteExistente;
 import com.example.CoreCommerce.exception.EmailClienteExistente;
 import com.example.CoreCommerce.entity.Cliente;
@@ -12,46 +14,68 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 public class ClienteService {
 
     @Autowired
     private ClienteRepository clienteRepository;
 
-    public ClienteDTO cadastrarCliente(ClienteDTO clienteDTO){
-        Cliente cliente = new Cliente();
-
-        if(clienteRepository.existsClienteByEmail(clienteDTO.email())){
+    public ClienteDTO cadastrarCliente(ClienteDTO clienteDTO) {
+        if (clienteRepository.existsClienteByEmail(clienteDTO.email())) {
             throw new EmailClienteExistente();
         }
 
-        if(clienteRepository.existsClienteByCpf(clienteDTO.cpf())){
-            throw new CpfClienteExistente();
-        }
-
+        Cliente cliente = new Cliente();
         cliente.setNome(clienteDTO.nome());
         cliente.setEmail(clienteDTO.email());
-        cliente.setCpf(clienteDTO.cpf());
+        cliente.setTipoPessoa(clienteDTO.tipoPessoa());
+
+        if (clienteDTO.tipoPessoa() == TipoPessoa.PESSOA_FISICA) {
+            if (clienteDTO.cpf() == null || clienteDTO.cpf().isBlank()) {
+                throw new RuntimeException("CPF é obrigatório para Pessoa Física");
+            }
+            if (clienteRepository.existsClienteByCpf(clienteDTO.cpf())) {
+                throw new CpfClienteExistente();
+            }
+
+            cliente.setCpf(clienteDTO.cpf());
+
+        } else if (clienteDTO.tipoPessoa() == TipoPessoa.PESSOA_JURIDICA) {
+            if (clienteDTO.cnpj() == null || clienteDTO.cnpj().isBlank()) {
+                throw new RuntimeException("CNPJ é obrigatório para Pessoa Jurídica");
+            }
+            if (clienteRepository.existsByCnpj(clienteDTO.cnpj())) {
+                throw new RuntimeException("CNPJ já existente!");
+            }
+
+            cliente.setCnpj(clienteDTO.cnpj());
+            cliente.setEndereco(clienteDTO.endereco());
+        }
 
         Cliente clienteSalvo = clienteRepository.save(cliente);
 
-        return new ClienteDTO(clienteSalvo.getId(),
+        return new ClienteDTO(
+                clienteSalvo.getId(),
                 clienteSalvo.getNome(),
                 clienteSalvo.getEmail(),
-                clienteSalvo.getCpf());
+                clienteSalvo.getTipoPessoa(),
+                clienteSalvo.getCpf(),
+                clienteSalvo.getCnpj(),
+                clienteSalvo.getEndereco()
+        );
     }
 
-    public Page<ClienteDTO> listarClientes(Pageable pageable){
+    public Page<ClienteListarDTO> listarClientes(Pageable pageable){
 
         var paginasEncontradas = clienteRepository.findAllByOrderByNomeAsc(pageable);
 
-        return paginasEncontradas.map(c -> new ClienteDTO(
+        return paginasEncontradas.map(c -> new ClienteListarDTO(
                         c.getId(),
                         c.getNome(),
                         c.getEmail(),
-                        c.getCpf()
+                        c.getCpf(),
+                        c.getCnpj(),
+                        c.getEndereco()
                 ));
 
     }

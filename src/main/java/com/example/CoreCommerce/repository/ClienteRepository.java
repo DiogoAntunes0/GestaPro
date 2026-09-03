@@ -16,4 +16,6 @@ public interface ClienteRepository extends JpaRepository <Cliente, Long> {
     Cliente deleteClienteById(Long id);
 
     Page<Cliente> findAllByOrderByNomeAsc(Pageable pageable);
+
+    boolean existsByCnpj(String cnpj);
 }

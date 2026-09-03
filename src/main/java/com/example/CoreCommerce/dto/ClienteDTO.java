@@ -1,4 +1,7 @@
 package com.example.CoreCommerce.dto;
 
-public record ClienteDTO(Long id, String nome, String email, String cpf) {
+import com.example.CoreCommerce.entity.Endereco;
+import com.example.CoreCommerce.entity.TipoPessoa;
+
+public record ClienteDTO(Long id, String nome, String email, TipoPessoa tipoPessoa, String cpf, String cnpj, Endereco endereco) {
 }
