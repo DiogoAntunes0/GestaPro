@@ -487,9 +487,10 @@ async function criarCliente() {
   }
 
   // Endpoint único — envia cpf ou cnpj no mesmo DTO, conforme o tipo selecionado
+  // tipoPessoa é obrigatório para o backend decidir qual campo persistir
   const payload = tipoClienteAtual === 'CNPJ'
-    ? { nome, email, cpf: null, cnpj: documento, endereco }
-    : { nome, email, cpf: documento, cnpj: null, endereco };
+    ? { nome, email, tipoPessoa: 'PESSOA_JURIDICA', cpf: null, cnpj: documento, endereco }
+    : { nome, email, tipoPessoa: 'PESSOA_FISICA', cpf: documento, cnpj: null, endereco };
 
   try {
     await apiFetch('/api/clientes/cadastrar/', {
