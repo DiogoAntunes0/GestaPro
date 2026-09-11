@@ -1,4 +1,6 @@
 package com.example.CoreCommerce.dto;
 
-public record StatusPedidoDTO() {
+import com.example.CoreCommerce.entity.StatusPedido;
+
+public record StatusPedidoDTO(Long id, StatusPedido statusPedido) {
 }

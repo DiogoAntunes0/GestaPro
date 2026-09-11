@@ -838,15 +838,15 @@ function filterPedidos(status, el) {
   renderPedidos();
 }
 
-async function atualizarStatus(pedidoId, status) {
+async function atualizarStatus(pedidoId, statusPedido) {
   try {
     await apiFetch(`/api/pedidos/${pedidoId}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ statusPedido })
     });
 
     const p = state.pedidos.find(p => p.id === pedidoId);
-    if (p) p.status = status;
+    if (p) p.status = statusPedido;
     renderAll();
     showToast('success', 'Status atualizado!');
   } catch (err) {
@@ -905,8 +905,8 @@ function renderPedidos() {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:40px">Nenhum pedido encontrado</td></tr>';
     return;
   }
-  const badgeMap = { AGUARDANDO_PAGAMENTO:'badge-amber', PAGO:'badge-green', CANCELADO:'badge-red' };
-  const labelMap = { AGUARDANDO_PAGAMENTO:'Aguardando', PAGO:'Pago', CANCELADO:'Cancelado' };
+  const badgeMap = { AGUARDANDO:'badge-amber', PAGO:'badge-green', CANCELADO:'badge-red' };
+  const labelMap = { AGUARDANDO:'Aguardando', PAGO:'Pago', CANCELADO:'Cancelado' };
   tbody.innerHTML = pedidos.map(p => {
     const id          = p.id;
     const nomeCliente = p.nomeCliente || p.cliente?.nome || p.cliente?.name || '—';
@@ -914,7 +914,7 @@ function renderPedidos() {
     const data        = dataStr ? new Date(dataStr).toLocaleString('pt-BR') : '—';
     const itens       = p.itens || p.items || [];
     const total       = p.valorTotal || p.total || 0;
-    const status      = p.status || p.statusPedido || 'AGUARDANDO_PAGAMENTO';
+    const status      = p.status || p.statusPedido || 'AGUARDANDO';
     return `
     <tr>
       <td><span class="primary">#${String(id).slice(-4)}</span></td>
@@ -937,7 +937,7 @@ function renderPedidos() {
             </svg>
           </button>
           <select style="padding:5px 8px;font-size:12px;width:auto" onchange="atualizarStatus(${id}, this.value)">
-            <option ${status==='AGUARDANDO_PAGAMENTO'?'selected':''} value="AGUARDANDO_PAGAMENTO">Aguardando</option>
+            <option ${status==='AGUARDANDO'?'selected':''} value="AGUARDANDO">Aguardando</option>
             <option ${status==='PAGO'?'selected':''} value="PAGO">Pago</option>
             <option ${status==='CANCELADO'?'selected':''} value="CANCELADO">Cancelado</option>
           </select>
@@ -960,15 +960,15 @@ function renderDashboard() {
   document.getElementById('statClientes').textContent = state.clientes.length;
 
   const recent = state.pedidos.slice(0, 5);
-  const badgeMap2 = { AGUARDANDO_PAGAMENTO:'badge-amber', PAGO:'badge-green', CANCELADO:'badge-red' };
-  const lbl2 = { AGUARDANDO_PAGAMENTO:'Aguardando', PAGO:'Pago', CANCELADO:'Cancelado' };
+  const badgeMap2 = { AGUARDANDO:'badge-amber', PAGO:'badge-green', CANCELADO:'badge-red' };
+  const lbl2 = { AGUARDANDO:'Aguardando', PAGO:'Pago', CANCELADO:'Cancelado' };
   const dashTbody = document.getElementById('dashRecentOrders');
   if (!recent.length) {
     dashTbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">Nenhum pedido ainda</td></tr>';
   } else {
     dashTbody.innerHTML = recent.map(p => {
       const nome   = p.nomeCliente || p.cliente?.nome || '—';
-      const status = p.status || p.statusPedido || 'AGUARDANDO_PAGAMENTO';
+      const status = p.status || p.statusPedido || 'AGUARDANDO';
       const total  = p.valorTotal || p.total || 0;
       return `
       <tr>

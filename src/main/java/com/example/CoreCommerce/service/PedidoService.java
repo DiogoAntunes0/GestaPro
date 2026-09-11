@@ -1,9 +1,6 @@
 package com.example.CoreCommerce.service;
 
-import com.example.CoreCommerce.dto.ItemPedidoDTO;
-import com.example.CoreCommerce.dto.ItemPedidoResponseDTO;
-import com.example.CoreCommerce.dto.PedidoDTO;
-import com.example.CoreCommerce.dto.PedidoResponseDTO;
+import com.example.CoreCommerce.dto.*;
 import com.example.CoreCommerce.entity.*;
 import com.example.CoreCommerce.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,7 +100,20 @@ public class PedidoService {
                 pedido.getDataPedido(),
                 itensDTO,
                 valorTotal,
-                pedido.getStatusPedido().name() // ou getStatus() se já for String
+                pedido.getStatusPedido()
         );
+    }
+
+   public StatusPedidoDTO atualizarStatusPedido(Long id, StatusPedidoDTO statusPedidoDTO){
+       Pedido pedido = pedidoRepository.findById(id)
+               .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        pedido.setStatusPedido(statusPedidoDTO.statusPedido());
+        pedidoRepository.save(pedido);
+
+       return new StatusPedidoDTO(
+               pedido.getId(),
+               pedido.getStatusPedido()
+       );
     }
 }
