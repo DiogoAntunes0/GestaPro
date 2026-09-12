@@ -11,6 +11,7 @@ import com.example.CoreCommerce.entity.Cliente;
 import com.example.CoreCommerce.repository.ClienteRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,8 @@ public class ClienteService {
 
     @Autowired
     private ClienteRepository clienteRepository;
+    @Autowired
+    private EmailService emailService;
 
     public ClienteDTO cadastrarCliente(ClienteDTO clienteDTO) {
         if (clienteRepository.existsClienteByEmail(clienteDTO.email())) {
@@ -64,6 +67,8 @@ public class ClienteService {
                 clienteSalvo.getCnpj(),
                 clienteSalvo.getEndereco()
         );
+
+
     }
 
     public Page<ClienteListarDTO> listarClientes(Pageable pageable){
