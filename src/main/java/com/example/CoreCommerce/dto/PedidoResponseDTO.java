@@ -11,6 +11,6 @@ public record PedidoResponseDTO(
         LocalDateTime dataPedido,
         List<ItemPedidoResponseDTO> itens,
         Double valorTotal,
-        String status
+        StatusPedido status
 ) {
 }

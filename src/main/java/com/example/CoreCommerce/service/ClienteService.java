@@ -37,7 +37,7 @@ public class ClienteService {
             if (clienteRepository.existsClienteByCpf(clienteDTO.cpf())) {
                 throw new CpfClienteExistente();
             }
-
+            cliente.setEndereco(clienteDTO.endereco());
             cliente.setCpf(clienteDTO.cpf());
 
         } else if (clienteDTO.tipoPessoa() == TipoPessoa.PESSOA_JURIDICA) {
