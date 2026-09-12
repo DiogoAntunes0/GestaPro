@@ -1,5 +1,6 @@
 package com.example.CoreCommerce.controller;
 
+import com.example.CoreCommerce.dto.BuscaCepDTO;
 import com.example.CoreCommerce.dto.ClienteDTO;
 import com.example.CoreCommerce.dto.ClienteDTOEmail;
 import com.example.CoreCommerce.dto.ClienteListarDTO;
@@ -38,5 +39,10 @@ public class ClienteController {
     @PatchMapping("/clientes/editar/email/{id}")
     public ClienteDTOEmail editarEmailCliente(@RequestBody ClienteDTOEmail clienteDTOEmail, @PathVariable Long id){
         return clienteService.editarCliente(clienteDTOEmail, id);
+    }
+
+    @GetMapping("/clientes/buscarCep/{cep}")
+    public BuscaCepDTO buscarCep(@PathVariable String cep){
+        return clienteService.buscarCep(cep);
     }
 }

@@ -1,9 +1,6 @@
 package com.example.CoreCommerce.controller;
 
-import com.example.CoreCommerce.dto.ItemPedidoResponseDTO;
-import com.example.CoreCommerce.dto.PedidoDTO;
-import com.example.CoreCommerce.dto.PedidoResponseDTO;
-import com.example.CoreCommerce.dto.StatusPedidoDTO;
+import com.example.CoreCommerce.dto.*;
 import com.example.CoreCommerce.entity.Pedido;
 import com.example.CoreCommerce.entity.StatusPedido;
 import com.example.CoreCommerce.service.PedidoService;

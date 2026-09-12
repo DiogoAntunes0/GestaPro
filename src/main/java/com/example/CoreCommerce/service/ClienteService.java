@@ -1,5 +1,6 @@
 package com.example.CoreCommerce.service;
 
+import com.example.CoreCommerce.dto.BuscaCepDTO;
 import com.example.CoreCommerce.dto.ClienteDTO;
 import com.example.CoreCommerce.dto.ClienteDTOEmail;
 import com.example.CoreCommerce.dto.ClienteListarDTO;
@@ -93,5 +94,10 @@ public class ClienteService {
          cliente.setEmail(clienteDTOEmail.email());
 
          return new ClienteDTOEmail(cliente.getId(), cliente.getEmail());
+    }
+
+    public BuscaCepDTO buscarCep(String cep) {
+      BuscaCepDTO cepBuscado = BuscaCepService.buscarCep(cep);
+       return cepBuscado;
     }
 }
