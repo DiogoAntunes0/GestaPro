@@ -21,6 +21,8 @@ public class PedidoService {
     private ClienteRepository clienteRepository;
     @Autowired
     private ProdutoRepository produtoRepository;
+    @Autowired
+    private EmailService emailService;
 
 
     @Transactional
@@ -52,6 +54,7 @@ public class PedidoService {
             pedido.setValorTotal(valorTotal);
         }
 
+        emailService.enviarEmailTeste("camz12346@gmail.com");
         pedido.setItens(itensPedido);
         return pedidoRepository.save(pedido);
     }
