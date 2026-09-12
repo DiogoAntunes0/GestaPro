@@ -80,8 +80,6 @@ O servidor iniciará por padrão na porta `8080` (http://localhost:8080).
 ## 📈 Próximos Passos (Roadmap)
 
 - [ ] Módulo de faturamento básico e geração de relatórios de vendas.
-- [ ] Integração com APIs externas para consulta de CEP no cadastro de clientes.
-- [ ] Cadastro completo, atualização e listagem de clientes (Pessoa Jurídica) 
 
 ---
 Desenvolvido com ☕ e dedicação por Diogo.
