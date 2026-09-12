@@ -45,10 +45,10 @@ const ENDPOINTS_LISTAR = {
 async function apiFetch(path, options = {}) {
   // 1. Busca o token mais recente do localStorage
   const token = localStorage.getItem('orderflow_token') || authToken;
-  
+
   // 2. Prepara os cabeçalhos
   const headers = { 'Content-Type': 'application/json', ...options.headers };
-  
+
   // 3. Se houver token, adiciona no formato Bearer
   if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -402,6 +402,78 @@ function maskCEP(el) {
   if (v.length > 8) v = v.slice(0, 8);
   v = v.replace(/(\d{5})(\d)/, '$1-$2');
   el.value = v;
+
+  // Assim que o CEP tiver os 8 dígitos, busca o endereço automaticamente
+  if (v.replace(/\D/g, '').length === 8) {
+    buscarCEP(el);
+  }
+}
+
+/* ══════════════════════════════════════
+   BUSCA DE ENDEREÇO POR CEP (ViaCEP)
+   Endpoint: https://viacep.com.br/ws/{cep}/json/
+   Retorno esperado (exemplo):
+   {
+     "cep": "01001-000",
+     "logradouro": "Praça da Sé",
+     "complemento": "lado ímpar",
+     "unidade": "",
+     "bairro": "Sé",
+     "localidade": "São Paulo",
+     "uf": "SP",
+     "estado": "São Paulo",
+     "regiao": "Sudeste",
+     "ibge": "3550308",
+     "gia": "1004",
+     "ddd": "11",
+     "siafi": "7107"
+   }
+══════════════════════════════════════ */
+async function buscarCEP(el) {
+  const cepLimpo = el.value.replace(/\D/g, '');
+  if (cepLimpo.length !== 8) return; // só busca quando tiver os 8 dígitos
+
+  // feedback visual simples enquanto busca
+  el.disabled = true;
+
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+    const dados = await res.json();
+
+    if (dados.erro) {
+      showToast('error', 'CEP não encontrado');
+      return;
+    }
+
+    preencherEnderecoCliente(dados);
+    showToast('success', 'Endereço preenchido automaticamente!');
+  } catch (err) {
+    showToast('error', 'Erro ao buscar CEP');
+  } finally {
+    el.disabled = false;
+  }
+}
+
+// Mapeia o retorno do ViaCEP para os campos do formulário de cliente
+function preencherEnderecoCliente(dados) {
+  const campos = {
+    cliLogradouro: dados.logradouro,
+    cliComplemento: dados.complemento,
+    cliBairro: dados.bairro,
+    cliLocalidade: dados.localidade, // campo "Cidade" no formulário
+    cliUf: dados.uf,
+    cliEstado: dados.estado,
+    cliRegiao: dados.regiao
+  };
+
+  Object.entries(campos).forEach(([id, valor]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = valor || '';
+  });
+
+  // Foca no campo de número/complemento para o usuário continuar o preenchimento
+  const logradouroEl = document.getElementById('cliLogradouro');
+  if (logradouroEl) logradouroEl.focus();
 }
 
 // Aplica a máscara certa no campo de documento do modal de cliente,
