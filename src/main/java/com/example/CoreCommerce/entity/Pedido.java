@@ -75,8 +75,7 @@ public class Pedido {
     }
 
     public Double getValorTotal() {
-        return this.getValorTotal();
+        return valorTotal;
     }
-
 }
 
