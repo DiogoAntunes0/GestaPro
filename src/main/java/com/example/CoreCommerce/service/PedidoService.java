@@ -49,14 +49,32 @@ public class PedidoService {
 
             ItemPedido item = new ItemPedido(pedido, precoVenda, produto, itemPedidoDTO.quantidade());
 
-            itensPedido.add(item);
             valorTotal += precoVenda * itemPedidoDTO.quantidade();
-            pedido.setValorTotal(valorTotal);
+            itensPedido.add(item);
         }
 
-        emailService.enviarEmailTeste("camz12346@gmail.com");
+        pedido.setValorTotal(valorTotal);
         pedido.setItens(itensPedido);
-        return pedidoRepository.save(pedido);
+        pedidoRepository.save(pedido);
+
+        List<ItemPedidoResponseDTO> detalhesPedido = itensPedido.stream()
+                .map(item -> new ItemPedidoResponseDTO(
+                        item.getProduto().getNome(),
+                        item.getQuantidade(),
+                        item.getPrecoVenda()
+                ))
+                .toList();
+
+        final String ASSUNTO = "Pedido Confirmado! 🛒 Resumo da sua compra #" + pedido.getId();
+
+        final String CONTEUDO = "Olá, <b>" + cliente.getNome() + "</b>!<br><br>"
+                + "Obrigado por comprar conosco. É um prazer ter você como cliente! "
+                + "Recebemos o seu pedido <b>#" + pedido.getId() + "</b> com sucesso e ele já está "
+                + "registrado em nosso sistema.<br><br>"
+                + "Confira abaixo o resumo dos itens que você escolheu:";
+
+        emailService.enviarEmail(cliente.getEmail(), ASSUNTO, CONTEUDO, detalhesPedido, pedido.getValorTotal());
+        return pedido;
     }
 
     public List<ItemPedidoResponseDTO> listarItemPedido(Long id) {
@@ -73,15 +91,9 @@ public class PedidoService {
     }
 
     public Page<PedidoResponseDTO> listarTodosPedidos(Pageable pageable) {
-
-        //  return pedidoRepository.findAllByOrderByDataPedidoDesc().stream()
-        //                .map(this::toPedidoResponseDTO)
-        //                .toList();
         
         Page<Pedido> paginaEncontradas = pedidoRepository.findAllByOrderByDataPedidoDesc(pageable);
-
         return paginaEncontradas.map(this::toPedidoResponseDTO);
-
     }
 
     private PedidoResponseDTO toPedidoResponseDTO(Pedido pedido) {
