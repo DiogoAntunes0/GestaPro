@@ -374,7 +374,7 @@
   <div class="modal" style="max-width:600px">
     <div class="modal-header">
       <div class="modal-title">Novo Pedido</div>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modalNovoPedido')">✕</button>
+      <button class="btn btn-ghost btn-sm" id="btnFecharPedido" onclick="closeModal('modalNovoPedido')">✕</button>
     </div>
     <div class="form-group" style="margin-bottom:16px">
       <label>Cliente</label>
@@ -401,8 +401,8 @@
       <div class="cart-total"><span>Total</span><span id="cartTotal">R$ 0,00</span></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
-      <button class="btn btn-ghost" onclick="closeModal('modalNovoPedido')">Cancelar</button>
-      <button class="btn btn-primary" onclick="criarPedido()">Criar Pedido</button>
+      <button class="btn btn-ghost" id="btnCancelarPedido" onclick="closeModal('modalNovoPedido')">Cancelar</button>
+      <button class="btn btn-primary" id="btnCriarPedido" onclick="criarPedido()">Criar Pedido</button>
     </div>
   </div>
 </div>
@@ -563,6 +563,20 @@
   </div>
 </div>
 
+<!-- Modal: Confirmação (genérico — exclusões e alteração de status) -->
+<div class="modal-overlay" id="modalConfirmacao">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title" id="confirmTitulo">Confirmar ação</div>
+    </div>
+    <p id="confirmMensagem" style="color:var(--text2);font-size:14px;line-height:1.5;margin:8px 0 20px"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="cancelarConfirmacao()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmBotaoOk" onclick="confirmarAcao()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -603,6 +617,30 @@
     padding:24px;
   }
   .hidden{ display:none; }
+
+  /* Spinner usado durante o envio do pedido (aguardando e-mail de confirmação) */
+  .spinner{
+    display:inline-block;
+    width:14px;
+    height:14px;
+    border:2px solid rgba(255,255,255,0.4);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+    vertical-align:middle;
+    margin-right:6px;
+  }
+  .btn-ghost .spinner{
+    border:2px solid rgba(0,0,0,0.15);
+    border-top-color:var(--text2, #555);
+  }
+  @keyframes spin{
+    to{ transform:rotate(360deg); }
+  }
+  .btn[disabled]{
+    opacity:0.75;
+    cursor:not-allowed;
+  }
 </style>
 
 <script>

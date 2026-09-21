@@ -356,11 +356,67 @@ function closeModal(id) {
 }
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) {
+    // O modal de confirmação tem sua própria lógica de cancelamento
+    // (precisa disparar o callback de "cancelar" antes de fechar)
+    if (e.target.id === 'modalConfirmacao') {
+      cancelarConfirmacao();
+      return;
+    }
+    // Enquanto o pedido está sendo enviado (aguardando resposta/e-mail),
+    // não deixa fechar clicando fora do modal
+    if (e.target.id === 'modalNovoPedido' && criandoPedido) {
+      return;
+    }
     e.target.classList.remove('open');
     state.cart = [];
     renderCart();
   }
 });
+
+/* ══════════════════════════════════════
+   MODAL DE CONFIRMAÇÃO (genérico)
+   Usado para: exclusão de registros e
+   alteração de status de pedido.
+══════════════════════════════════════ */
+let confirmacaoCallbackOk = null;
+let confirmacaoCallbackCancel = null;
+
+/**
+ * Abre o modal de confirmação genérico.
+ * titulo        -> título exibido no modal
+ * mensagem      -> texto explicando a ação
+ * onConfirmar   -> função chamada se o usuário confirmar
+ * variante      -> 'danger' (vermelho, para exclusões) ou 'primary' (para outras ações)
+ * onCancelar    -> (opcional) função chamada se o usuário cancelar/fechar o modal
+ */
+function abrirConfirmacao(titulo, mensagem, onConfirmar, variante = 'danger', onCancelar = null) {
+  document.getElementById('confirmTitulo').textContent = titulo;
+  document.getElementById('confirmMensagem').textContent = mensagem;
+
+  const btnOk = document.getElementById('confirmBotaoOk');
+  btnOk.className = variante === 'primary' ? 'btn btn-primary' : 'btn btn-danger';
+
+  confirmacaoCallbackOk = onConfirmar;
+  confirmacaoCallbackCancel = onCancelar;
+
+  openModal('modalConfirmacao');
+}
+
+function cancelarConfirmacao() {
+  const cb = confirmacaoCallbackCancel;
+  confirmacaoCallbackOk = null;
+  confirmacaoCallbackCancel = null;
+  document.getElementById('modalConfirmacao').classList.remove('open');
+  if (cb) cb();
+}
+
+function confirmarAcao() {
+  const cb = confirmacaoCallbackOk;
+  confirmacaoCallbackOk = null;
+  confirmacaoCallbackCancel = null;
+  document.getElementById('modalConfirmacao').classList.remove('open');
+  if (cb) cb();
+}
 
 /* ══════════════════════════════════════
    TOAST
@@ -412,22 +468,6 @@ function maskCEP(el) {
 /* ══════════════════════════════════════
    BUSCA DE ENDEREÇO POR CEP (ViaCEP)
    Endpoint: https://viacep.com.br/ws/{cep}/json/
-   Retorno esperado (exemplo):
-   {
-     "cep": "01001-000",
-     "logradouro": "Praça da Sé",
-     "complemento": "lado ímpar",
-     "unidade": "",
-     "bairro": "Sé",
-     "localidade": "São Paulo",
-     "uf": "SP",
-     "estado": "São Paulo",
-     "regiao": "Sudeste",
-     "ibge": "3550308",
-     "gia": "1004",
-     "ddd": "11",
-     "siafi": "7107"
-   }
 ══════════════════════════════════════ */
 async function buscarCEP(el) {
   const cepLimpo = el.value.replace(/\D/g, '');
@@ -646,7 +686,21 @@ async function salvarEmailCliente() {
   }
 }
 
-async function removeCliente(id) {
+// Abre a confirmação antes de remover o cliente
+function removeCliente(id) {
+  const cli = state.clientes.find(c => String(c.id) === String(id));
+  const nome = cli ? (cli.nome || cli.name) : '';
+
+  abrirConfirmacao(
+    'Remover cliente',
+    `Tem certeza que deseja remover${nome ? ` "${nome}"` : ' este cliente'}? Essa ação não pode ser desfeita.`,
+    () => executarRemoverCliente(id),
+    'danger'
+  );
+}
+
+// Só executa a exclusão de fato depois que o usuário confirma no modal
+async function executarRemoverCliente(id) {
   try {
     await apiFetch(`/api/clientes/${id}`, { method: 'DELETE' });
 
@@ -773,7 +827,21 @@ function renderProdutos() {
   }).join('');
 }
 
-async function removeProduto(id) {
+// Abre a confirmação antes de remover o produto
+function removeProduto(id) {
+  const prod = state.produtos.find(p => String(p.id) === String(id));
+  const nome = prod ? getProdutoNome(prod) : '';
+
+  abrirConfirmacao(
+    'Remover produto',
+    `Tem certeza que deseja remover${nome ? ` "${nome}"` : ' este produto'}? Essa ação não pode ser desfeita.`,
+    () => executarRemoverProduto(id),
+    'danger'
+  );
+}
+
+// Só executa a exclusão de fato depois que o usuário confirma no modal
+async function executarRemoverProduto(id) {
   try {
     await apiFetch(`/api/produtos/${id}`, { method: 'DELETE' });
 
@@ -865,7 +933,13 @@ function renderCart() {
 
 function removeCartItem(i) { state.cart.splice(i, 1); renderCart(); }
 
+// Controla se um pedido está sendo enviado no momento
+// (usado para travar o modal e impedir fechamento no meio do envio)
+let criandoPedido = false;
+
 async function criarPedido() {
+  if (criandoPedido) return; // evita duplo clique enquanto já está enviando
+
   const clienteId = parseInt(document.getElementById('pedidoCliente').value);
   if (!clienteId) { showToast('error', 'Selecione um cliente'); return; }
   if (!state.cart.length) { showToast('error', 'Adicione pelo menos um item'); return; }
@@ -879,6 +953,18 @@ async function criarPedido() {
       quantidade: i.quantidade
     }))
   };
+
+  const btnCriar    = document.getElementById('btnCriarPedido');
+  const btnCancelar = document.getElementById('btnCancelarPedido');
+  const btnFechar   = document.getElementById('btnFecharPedido');
+  const textoOriginalBtn = btnCriar.innerHTML;
+
+  // ── liga o estado de "enviando" (spinner + botões travados) ──
+  criandoPedido = true;
+  btnCriar.disabled = true;
+  btnCriar.innerHTML = '<span class="spinner"></span> Enviando pedido...';
+  if (btnCancelar) btnCancelar.disabled = true;
+  if (btnFechar) btnFechar.disabled = true;
 
   try {
     await apiFetch('/api/pedidos', {
@@ -894,12 +980,20 @@ async function criarPedido() {
     ]);
 
     state.cart = [];
+    criandoPedido = false; // libera antes de fechar, pois closeModal reseta o carrinho
     closeModal('modalNovoPedido');
     renderAll();
     const emailCliente = cliente?.email || '';
     showToast('success', `Pedido criado! E-mail enviado para ${emailCliente} ✉️`);
   } catch (err) {
     showToast('error', err.message || 'Erro ao criar pedido');
+  } finally {
+    // ── desliga o estado de "enviando", restaurando os botões ──
+    criandoPedido = false;
+    btnCriar.disabled = false;
+    btnCriar.innerHTML = textoOriginalBtn;
+    if (btnCancelar) btnCancelar.disabled = false;
+    if (btnFechar) btnFechar.disabled = false;
   }
 }
 
@@ -910,7 +1004,28 @@ function filterPedidos(status, el) {
   renderPedidos();
 }
 
-async function atualizarStatus(pedidoId, statusPedido) {
+// Rótulos usados nas mensagens de confirmação
+const LABEL_STATUS = { AGUARDANDO: 'Aguardando', PAGO: 'Pago', CANCELADO: 'Cancelado' };
+
+/**
+ * Disparado pelo onchange do <select> de status.
+ * Abre a confirmação; se o usuário cancelar, o select volta
+ * para o valor anterior (não perde o estado visualmente).
+ */
+function confirmarStatusPedido(pedidoId, novoStatus, selectEl) {
+  const statusAnterior = selectEl.getAttribute('data-status-anterior') || novoStatus;
+
+  abrirConfirmacao(
+    'Alterar status do pedido',
+    `Deseja realmente alterar o status do pedido #${String(pedidoId).slice(-4)} para "${LABEL_STATUS[novoStatus] || novoStatus}"? Depois de confirmado, o status não poderá ser alterado novamente.`,
+    () => executarAtualizarStatus(pedidoId, novoStatus, selectEl),
+    'primary',
+    () => { selectEl.value = statusAnterior; } // cancelou: reverte a seleção
+  );
+}
+
+// Só chama a API depois que o usuário confirma no modal
+async function executarAtualizarStatus(pedidoId, statusPedido, selectEl) {
   try {
     await apiFetch(`/api/pedidos/${pedidoId}/status`, {
       method: 'PATCH',
@@ -919,10 +1034,14 @@ async function atualizarStatus(pedidoId, statusPedido) {
 
     const p = state.pedidos.find(p => p.id === pedidoId);
     if (p) p.status = statusPedido;
+
+    // renderAll() recria o <select> já travado (disabled),
+    // pois o status deixou de ser 'AGUARDANDO'
     renderAll();
-    showToast('success', 'Status atualizado!');
+    showToast('success', 'Status atualizado! Este pedido não poderá mais ter o status alterado.');
   } catch (err) {
     showToast('error', err.message || 'Erro ao atualizar status');
+    if (selectEl) selectEl.value = selectEl.getAttribute('data-status-anterior');
     renderPedidos();
   }
 }
@@ -987,6 +1106,9 @@ function renderPedidos() {
     const itens       = p.itens || p.items || [];
     const total       = p.valorTotal || p.total || 0;
     const status      = p.status || p.statusPedido || 'AGUARDANDO';
+    // Uma vez que o pedido saiu de "Aguardando", o status fica travado
+    // (definido ou pelo backend, ou por uma confirmação anterior do usuário)
+    const statusTravado = status !== 'AGUARDANDO';
     return `
     <tr>
       <td><span class="primary">#${String(id).slice(-4)}</span></td>
@@ -1008,7 +1130,13 @@ function renderPedidos() {
               <circle cx="12" cy="12" r="3"/>
             </svg>
           </button>
-          <select style="padding:5px 8px;font-size:12px;width:auto" onchange="atualizarStatus(${id}, this.value)">
+          <select
+            data-status-anterior="${status}"
+            ${statusTravado ? 'disabled' : ''}
+            title="${statusTravado ? 'Status já confirmado — não pode ser alterado' : 'Alterar status do pedido'}"
+            style="padding:5px 8px;font-size:12px;width:auto${statusTravado ? ';opacity:0.6;cursor:not-allowed' : ''}"
+            onchange="confirmarStatusPedido(${id}, this.value, this)"
+          >
             <option ${status==='AGUARDANDO'?'selected':''} value="AGUARDANDO">Aguardando</option>
             <option ${status==='PAGO'?'selected':''} value="PAGO">Pago</option>
             <option ${status==='CANCELADO'?'selected':''} value="CANCELADO">Cancelado</option>
