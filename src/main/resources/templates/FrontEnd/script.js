@@ -871,24 +871,127 @@ function getProdutoNome(p) {
 }
 
 function populatePedidoSelects() {
-  const cSel = document.getElementById('pedidoCliente');
-  cSel.innerHTML = '<option value="">Selecione um cliente...</option>' +
-    state.clientes.map(c => `<option value="${c.id}">${c.nome || c.name}</option>`).join('');
-
-  const pSel = document.getElementById('pedidoProduto');
-  const disponiveis = state.produtos.filter(p => getProdutoEstoque(p) > 0);
-  pSel.innerHTML = disponiveis.length
-    ? disponiveis.map(p => `<option value="${p.id}">${getProdutoNome(p)} — R$ ${Number(getProdutoPreco(p)).toFixed(2)} (estoque: ${getProdutoEstoque(p)})</option>`).join('')
-    : '<option value="" disabled>Nenhum produto com estoque</option>';
+  // Limpa a busca de cliente e produto ao abrir o modal
+  const clienteBusca = document.getElementById('pedidoClienteBusca');
+  const produtoBusca = document.getElementById('pedidoProdutoBusca');
+  if (clienteBusca) clienteBusca.value = '';
+  document.getElementById('pedidoClienteId').value = '';
+  if (produtoBusca) produtoBusca.value = '';
+  document.getElementById('pedidoProdutoId').value = '';
+  fecharListaAutocomplete('pedidoClienteLista');
+  fecharListaAutocomplete('pedidoProdutoLista');
 
   state.cart = [];
   renderCart();
 }
 
+/* ── Autocomplete: Cliente (modal Novo Pedido) ──
+   Filtra pelo nome (e também por CPF/CNPJ, ignorando pontuação)
+   dentro dos clientes já carregados em state.clientes.               */
+function buscarClientePedido(termo) {
+  const lista = document.getElementById('pedidoClienteLista');
+  const termoLimpo = normalizarTexto(termo);
+
+  // Se o texto não bate mais com o cliente selecionado, invalida a seleção
+  const idAtual = document.getElementById('pedidoClienteId').value;
+  if (idAtual) {
+    const selecionado = state.clientes.find(c => String(c.id) === String(idAtual));
+    if (!selecionado || normalizarTexto(selecionado.nome || selecionado.name || '') !== normalizarTexto(termo)) {
+      document.getElementById('pedidoClienteId').value = '';
+    }
+  }
+
+  const resultados = state.clientes.filter(c => {
+    const nome = normalizarTexto(c.nome || c.name || '');
+    const doc  = normalizarTexto(c.cpf || c.cnpj || '');
+    return termoLimpo === '' || nome.includes(termoLimpo) || doc.includes(termoLimpo);
+  }).slice(0, 8);
+
+  if (!resultados.length) {
+    lista.innerHTML = `<div class="autocomplete-vazio">Nenhum cliente encontrado</div>`;
+  } else {
+    lista.innerHTML = resultados.map(c => `
+      <div class="autocomplete-item" onclick="selecionarClientePedido(${c.id})">
+        <span class="ac-titulo">${c.nome || c.name || ''}</span>
+        <span class="ac-sub">${c.cpf || c.cnpj || c.email || ''}</span>
+      </div>
+    `).join('');
+  }
+  lista.classList.remove('hidden');
+}
+
+function selecionarClientePedido(id) {
+  const cli = state.clientes.find(c => String(c.id) === String(id));
+  if (!cli) return;
+  document.getElementById('pedidoClienteBusca').value = cli.nome || cli.name || '';
+  document.getElementById('pedidoClienteId').value = cli.id;
+  fecharListaAutocomplete('pedidoClienteLista');
+}
+
+/* ── Autocomplete: Produto (modal Novo Pedido) ──
+   Só sugere produtos com estoque disponível.                          */
+function buscarProdutoPedido(termo) {
+  const lista = document.getElementById('pedidoProdutoLista');
+  const termoLimpo = normalizarTexto(termo);
+
+  const idAtual = document.getElementById('pedidoProdutoId').value;
+  if (idAtual) {
+    const selecionado = state.produtos.find(p => String(p.id) === String(idAtual));
+    if (!selecionado || normalizarTexto(getProdutoNome(selecionado)) !== normalizarTexto(termo)) {
+      document.getElementById('pedidoProdutoId').value = '';
+    }
+  }
+
+  const disponiveis = state.produtos.filter(p => getProdutoEstoque(p) > 0);
+  const resultados = disponiveis.filter(p => {
+    const nome = normalizarTexto(getProdutoNome(p));
+    const sku  = normalizarTexto(p.sku || '');
+    return termoLimpo === '' || nome.includes(termoLimpo) || sku.includes(termoLimpo);
+  }).slice(0, 8);
+
+  if (!disponiveis.length) {
+    lista.innerHTML = `<div class="autocomplete-vazio">Nenhum produto com estoque</div>`;
+  } else if (!resultados.length) {
+    lista.innerHTML = `<div class="autocomplete-vazio">Nenhum produto encontrado</div>`;
+  } else {
+    lista.innerHTML = resultados.map(p => `
+      <div class="autocomplete-item" onclick="selecionarProdutoPedido(${p.id})">
+        <span class="ac-titulo">${getProdutoNome(p)}</span>
+        <span class="ac-sub">R$ ${Number(getProdutoPreco(p)).toFixed(2)} · estoque: ${getProdutoEstoque(p)}</span>
+      </div>
+    `).join('');
+  }
+  lista.classList.remove('hidden');
+}
+
+function selecionarProdutoPedido(id) {
+  const prod = state.produtos.find(p => String(p.id) === String(id));
+  if (!prod) return;
+  document.getElementById('pedidoProdutoBusca').value = getProdutoNome(prod);
+  document.getElementById('pedidoProdutoId').value = prod.id;
+  fecharListaAutocomplete('pedidoProdutoLista');
+}
+
+function fecharListaAutocomplete(listaId) {
+  const lista = document.getElementById(listaId);
+  if (lista) lista.classList.add('hidden');
+}
+
+// Fecha as listas de autocomplete ao clicar fora delas
+document.addEventListener('click', e => {
+  if (!e.target.closest('#pedidoClienteBusca') && !e.target.closest('#pedidoClienteLista')) {
+    fecharListaAutocomplete('pedidoClienteLista');
+  }
+  if (!e.target.closest('#pedidoProdutoBusca') && !e.target.closest('#pedidoProdutoLista')) {
+    fecharListaAutocomplete('pedidoProdutoLista');
+  }
+});
+
 function addCartItem() {
-  const pId = parseInt(document.getElementById('pedidoProduto').value);
+  const pId = parseInt(document.getElementById('pedidoProdutoId').value);
   const qtd = parseInt(document.getElementById('pedidoQtd').value);
-  if (!pId || qtd < 1) { showToast('error', 'Selecione um produto e quantidade válida'); return; }
+  if (!pId) { showToast('error', 'Selecione um produto na lista de sugestões'); return; }
+  if (!qtd || qtd < 1) { showToast('error', 'Informe uma quantidade válida'); return; }
   const prod = state.produtos.find(p => p.id === pId);
   if (!prod) return;
   const existing = state.cart.find(i => i.produtoId === pId);
@@ -905,6 +1008,11 @@ function addCartItem() {
     precoVenda: getProdutoPreco(prod)
   });
   renderCart();
+
+  // limpa a busca de produto para o usuário adicionar o próximo item
+  document.getElementById('pedidoProdutoBusca').value = '';
+  document.getElementById('pedidoProdutoId').value = '';
+  document.getElementById('pedidoQtd').value = 1;
 }
 
 function renderCart() {
@@ -940,8 +1048,8 @@ let criandoPedido = false;
 async function criarPedido() {
   if (criandoPedido) return; // evita duplo clique enquanto já está enviando
 
-  const clienteId = parseInt(document.getElementById('pedidoCliente').value);
-  if (!clienteId) { showToast('error', 'Selecione um cliente'); return; }
+  const clienteId = parseInt(document.getElementById('pedidoClienteId').value);
+  if (!clienteId) { showToast('error', 'Selecione um cliente na lista de sugestões'); return; }
   if (!state.cart.length) { showToast('error', 'Adicione pelo menos um item'); return; }
 
   const cliente = state.clientes.find(c => c.id === clienteId);
