@@ -376,18 +376,26 @@
       <div class="modal-title">Novo Pedido</div>
       <button class="btn btn-ghost btn-sm" id="btnFecharPedido" onclick="closeModal('modalNovoPedido')">✕</button>
     </div>
-    <div class="form-group" style="margin-bottom:16px">
+    <div class="form-group" style="margin-bottom:16px;position:relative">
       <label>Cliente</label>
-      <select id="pedidoCliente">
-        <option value="">Selecione um cliente...</option>
-      </select>
+      <input type="text" id="pedidoClienteBusca" class="autocomplete-input" placeholder="Digite o nome do cliente..."
+             autocomplete="off"
+             oninput="buscarClientePedido(this.value)"
+             onfocus="buscarClientePedido(this.value)">
+      <input type="hidden" id="pedidoClienteId">
+      <div class="autocomplete-list hidden" id="pedidoClienteLista"></div>
     </div>
     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;margin-bottom:16px">
       <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em">Adicionar Item</div>
       <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:end">
-        <div class="form-group" style="margin:0">
+        <div class="form-group" style="margin:0;position:relative">
           <label>Produto</label>
-          <select id="pedidoProduto"></select>
+          <input type="text" id="pedidoProdutoBusca" class="autocomplete-input" placeholder="Digite o nome do produto..."
+                 autocomplete="off"
+                 oninput="buscarProdutoPedido(this.value)"
+                 onfocus="buscarProdutoPedido(this.value)">
+          <input type="hidden" id="pedidoProdutoId">
+          <div class="autocomplete-list hidden" id="pedidoProdutoLista"></div>
         </div>
         <div class="form-group" style="margin:0;width:80px">
           <label>Qtd</label>
@@ -640,6 +648,47 @@
   .btn[disabled]{
     opacity:0.75;
     cursor:not-allowed;
+  }
+
+  /* Autocomplete: campo de busca de cliente/produto no modal de Novo Pedido */
+  .autocomplete-list{
+    position:absolute;
+    top:calc(100% + 4px);
+    left:0;
+    right:0;
+    z-index:50;
+    background:var(--bg2, #fff);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);
+    max-height:220px;
+    overflow-y:auto;
+  }
+  .autocomplete-item{
+    padding:9px 12px;
+    font-size:13px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .autocomplete-item:hover,
+  .autocomplete-item.hovered{
+    background:var(--bg3);
+  }
+  .autocomplete-item .ac-titulo{
+    color:var(--text1);
+    font-weight:500;
+  }
+  .autocomplete-item .ac-sub{
+    color:var(--text3);
+    font-size:11px;
+  }
+  .autocomplete-vazio{
+    padding:12px;
+    font-size:13px;
+    color:var(--text3);
+    text-align:center;
   }
 </style>
 
