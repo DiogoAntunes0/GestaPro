@@ -279,11 +279,13 @@
         </div>
         <div class="card">
 
-          <!-- BUSCA: Produtos por nome
-               OBS: filtra apenas os produtos já carregados na página atual -->
+          <!-- BUSCA: Produtos por nome ou SKU
+               Busca no backend (GET /api/produtos/buscar?nome=&sku=), com
+               debounce de ~300ms, resultado paginado. Ao limpar o campo,
+               volta a exibir a listagem paginada normal. -->
           <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="buscaProdutos" placeholder="Buscar produto pelo nome (nesta página)..." oninput="buscarNaTabela('tabelaProdutos', 0, this.value)">
+            <input type="text" id="buscaProdutos" placeholder="Buscar produto pelo nome ou SKU..." oninput="onProdutoSearchInput(this.value)">
           </div>
 
           <div class="table-wrap">
@@ -304,7 +306,7 @@
               </tbody>
             </table>
           </div>
-          <div id="semResultadoProdutos" class="sem-resultado hidden">Nenhum produto encontrado com esse nome.</div>
+          <div id="semResultadoProdutos" class="sem-resultado hidden">Nenhum produto encontrado com esse nome ou SKU.</div>
 
           <!-- Paginação -->
           <div id="paginacao-produtos"></div>
@@ -699,10 +701,11 @@
  * Funciona em cima do que já está renderizado na tela — não depende
  * de como script.js populou a tabela.
  *
- * IMPORTANTE: com a paginação do backend, isso filtra apenas os
- * registros da página atual, não a base inteira.
+ * Usado hoje pelas buscas de Pedidos e Clientes (filtro local, só na
+ * página atual). A busca de Produtos foi migrada para o backend —
+ * veja onProdutoSearchInput / carregarBuscaProdutos em script.js.
  *
- * tbodyId   -> id do <tbody> (ex: 'tabelaProdutos')
+ * tbodyId   -> id do <tbody> (ex: 'tabelaClientes')
  * colIndex  -> índice da coluna a comparar (0 = primeira <td>)
  * termo     -> texto digitado pelo usuário
  */
@@ -727,7 +730,6 @@ function buscarNaTabela(tbodyId, colIndex, termo) {
 
   // mensagem de "nenhum resultado" por tabela
   const idsSemResultado = {
-    tabelaProdutos: 'semResultadoProdutos',
     tabelaClientes: 'semResultadoClientes',
     tabelaPedidos: 'semResultadoPedidos'
   };
@@ -739,7 +741,6 @@ function buscarNaTabela(tbodyId, colIndex, termo) {
   // Enquanto uma busca estiver ativa, esconde a paginação
   // (não faz sentido "próxima página" filtrando apenas o que já está na tela)
   const idsPaginacao = {
-    tabelaProdutos: 'paginacao-produtos',
     tabelaClientes: 'paginacao-clientes',
     tabelaPedidos: 'paginacao-pedidos'
   };

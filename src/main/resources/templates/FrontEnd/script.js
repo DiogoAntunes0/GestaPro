@@ -23,6 +23,11 @@ let editingProdutoId = null;
 // Tipo de documento selecionado no modal de Novo Cliente ('CPF' | 'CNPJ')
 let tipoClienteAtual = 'CPF';
 
+// Controle da busca paginada de produtos (nome/sku) no backend
+let produtoBuscaAtiva = false;
+let produtoSearchTermoAtual = '';
+let produtoSearchDebounceTimer = null;
+
 /* ══════════════════════════════════════
    PAGINAÇÃO
    Um controle de página por entidade
@@ -178,6 +183,8 @@ function doLogout() {
   paginacao.clientes.pagina = 0;
   paginacao.produtos.pagina = 0;
   paginacao.pedidos.pagina = 0;
+  produtoBuscaAtiva = false;
+  produtoSearchTermoAtual = '';
   localStorage.removeItem('orderflow_token');
   localStorage.removeItem('orderflow_user');
   document.getElementById('mainApp').classList.add('hidden');
@@ -215,6 +222,39 @@ async function carregarPagina(entidade) {
   } catch (err) {
     state[entidade] = [];
     showToast('error', `Erro ao carregar ${entidade}`);
+  }
+}
+
+/* ── Busca paginada de produtos por nome/sku (backend) ──
+   Endpoint: GET /api/produtos/buscar?nome=&sku=&page=&size=
+   Retorna qualquer produto cujo nome OU sku bata com o termo digitado. */
+async function carregarBuscaProdutos() {
+  const p = paginacao.produtos;
+  try {
+    const qs = new URLSearchParams({
+      nome: produtoSearchTermoAtual,
+      sku: produtoSearchTermoAtual,
+      page: p.pagina,
+      size: p.tamanho
+    });
+
+    const dados = await apiFetch(`/api/produtos/buscar?${qs.toString()}`);
+    const conteudo = Array.isArray(dados) ? dados : (dados.content || dados.data || []);
+    state.produtos = conteudo;
+
+    if (!Array.isArray(dados)) {
+      p.totalPaginas = dados.totalPages ?? 0;
+      atualizarControlesPaginacao('produtos', dados);
+    } else {
+      p.totalPaginas = 1;
+      atualizarControlesPaginacao('produtos', { number: 0, totalPages: 1, first: true, last: true });
+    }
+
+    const semResultado = document.getElementById('semResultadoProdutos');
+    if (semResultado) semResultado.classList.toggle('hidden', conteudo.length > 0);
+  } catch (err) {
+    state.produtos = [];
+    showToast('error', 'Erro ao buscar produtos');
   }
 }
 
@@ -294,7 +334,11 @@ async function irParaPagina(entidade, numeroPagina) {
   if (numeroPagina === p.pagina || numeroPagina < 0 || numeroPagina >= p.totalPaginas) return;
 
   p.pagina = numeroPagina;
-  await carregarPagina(entidade);
+  if (entidade === 'produtos' && produtoBuscaAtiva) {
+    await carregarBuscaProdutos();
+  } else {
+    await carregarPagina(entidade);
+  }
   rerenderTabela(entidade);
 }
 
@@ -306,7 +350,11 @@ async function mudarPagina(entidade, direcao) {
   if (novaPagina < 0 || novaPagina >= p.totalPaginas) return;
 
   p.pagina = novaPagina;
-  await carregarPagina(entidade);
+  if (entidade === 'produtos' && produtoBuscaAtiva) {
+    await carregarBuscaProdutos();
+  } else {
+    await carregarPagina(entidade);
+  }
   rerenderTabela(entidade);
 }
 
@@ -769,8 +817,12 @@ async function criarProduto() {
         body: JSON.stringify(payload)
       });
 
-      // Recarrega a página atual para refletir a alteração
-      await carregarPagina('produtos');
+      // Recarrega a página/busca atual para refletir a alteração
+      if (produtoBuscaAtiva) {
+        await carregarBuscaProdutos();
+      } else {
+        await carregarPagina('produtos');
+      }
 
       closeModal('modalNovoProduto');
       renderAll();
@@ -783,7 +835,11 @@ async function criarProduto() {
 
       // Volta para a primeira página e recarrega para refletir o novo registro
       paginacao.produtos.pagina = 0;
-      await carregarPagina('produtos');
+      if (produtoBuscaAtiva) {
+        await carregarBuscaProdutos();
+      } else {
+        await carregarPagina('produtos');
+      }
 
       closeModal('modalNovoProduto');
       renderAll();
@@ -848,13 +904,47 @@ async function executarRemoverProduto(id) {
     if (state.produtos.length === 1 && paginacao.produtos.pagina > 0) {
       paginacao.produtos.pagina -= 1;
     }
-    await carregarPagina('produtos');
+    if (produtoBuscaAtiva) {
+      await carregarBuscaProdutos();
+    } else {
+      await carregarPagina('produtos');
+    }
 
     renderAll();
     showToast('success', 'Produto removido.');
   } catch (err) {
     showToast('error', err.message || 'Erro ao remover produto');
   }
+}
+
+/* ── Busca de produtos por nome/sku (backend, paginada, com debounce) ──
+   Endpoint: GET /api/produtos/buscar?nome=&sku=&page=&size=
+   Ao limpar o campo, volta para a listagem paginada normal.          */
+function onProdutoSearchInput(termo) {
+  clearTimeout(produtoSearchDebounceTimer);
+  produtoSearchDebounceTimer = setTimeout(() => executarBuscaProduto(termo), 300);
+}
+
+async function executarBuscaProduto(termoBruto) {
+  const termo = (termoBruto || '').trim();
+
+  // Campo limpo -> volta pra listagem paginada normal
+  if (!termo) {
+    produtoBuscaAtiva = false;
+    produtoSearchTermoAtual = '';
+    paginacao.produtos.pagina = 0;
+    await carregarPagina('produtos');
+    rerenderTabela('produtos');
+    const semResultado = document.getElementById('semResultadoProdutos');
+    if (semResultado) semResultado.classList.add('hidden');
+    return;
+  }
+
+  produtoBuscaAtiva = true;
+  produtoSearchTermoAtual = termo;
+  paginacao.produtos.pagina = 0; // toda nova busca reinicia na página 0
+  await carregarBuscaProdutos();
+  rerenderTabela('produtos');
 }
 
 /* ══════════════════════════════════════
@@ -1084,7 +1174,7 @@ async function criarPedido() {
     paginacao.pedidos.pagina = 0;
     await Promise.all([
       carregarPagina('pedidos'),
-      carregarPagina('produtos')
+      (produtoBuscaAtiva ? carregarBuscaProdutos() : carregarPagina('produtos'))
     ]);
 
     state.cart = [];
