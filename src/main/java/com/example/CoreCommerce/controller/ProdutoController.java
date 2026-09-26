@@ -1,5 +1,6 @@
 package com.example.CoreCommerce.controller;
 
+import com.example.CoreCommerce.dto.BuscaProdutoDTO;
 import com.example.CoreCommerce.dto.ProdutoDTO;
 import com.example.CoreCommerce.entity.Produto;
 import com.example.CoreCommerce.service.ProdutoService;
@@ -39,5 +40,16 @@ public class ProdutoController {
     @PutMapping("/produtos/editar/{id}")
     public ProdutoDTO editarProduto(@PathVariable Long id, @RequestBody ProdutoDTO produtoDTO){
         return produtoService.editarProduto(id, produtoDTO);
+    }
+
+    @GetMapping("/produtos/buscar")
+    public Page<BuscaProdutoDTO> buscarProdutos(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) String sku,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        return produtoService.buscarProdutos(nome, sku, pageable);
     }
 }

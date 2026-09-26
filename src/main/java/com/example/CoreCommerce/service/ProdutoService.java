@@ -1,5 +1,6 @@
 package com.example.CoreCommerce.service;
 
+import com.example.CoreCommerce.dto.BuscaProdutoDTO;
 import com.example.CoreCommerce.dto.ProdutoDTO;
 import com.example.CoreCommerce.entity.Produto;
 import com.example.CoreCommerce.repository.ProdutoRepository;
@@ -9,6 +10,8 @@ import org.springframework.core.env.PropertyResolver;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class ProdutoService {
@@ -84,6 +87,12 @@ public class ProdutoService {
                 produto.getPrecoProduto(),
                 produto.getQuantidadeEstoque());
 
+    }
+
+    public Page<BuscaProdutoDTO> buscarProdutos(String nome, String sku, Pageable pageable) {
+        Page<Produto> produtos = produtoRepository.buscarPorNomeOuSku(nome, sku, pageable);
+
+        return produtos.map(BuscaProdutoDTO::new);
     }
 }
 
