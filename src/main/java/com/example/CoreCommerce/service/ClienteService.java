@@ -1,9 +1,6 @@
 package com.example.CoreCommerce.service;
 
-import com.example.CoreCommerce.dto.BuscaCepDTO;
-import com.example.CoreCommerce.dto.ClienteDTO;
-import com.example.CoreCommerce.dto.ClienteDTOEmail;
-import com.example.CoreCommerce.dto.ClienteListarDTO;
+import com.example.CoreCommerce.dto.*;
 import com.example.CoreCommerce.entity.TipoPessoa;
 import com.example.CoreCommerce.exception.CpfClienteExistente;
 import com.example.CoreCommerce.exception.EmailClienteExistente;
@@ -15,6 +12,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @Service
 public class ClienteService {
@@ -104,5 +104,11 @@ public class ClienteService {
     public BuscaCepDTO buscarCep(String cep) {
       BuscaCepDTO cepBuscado = BuscaCepService.buscarCep(cep);
        return cepBuscado;
+    }
+
+    public Page<BuscaClienteDTO> buscarClientes(String cnpj , String nome, String cpf, Pageable pageable) {
+        Page<Cliente> clientes = clienteRepository.buscarClientes(cnpj, nome, cpf, pageable);
+
+        return clientes.map(BuscaClienteDTO::new);
     }
 }
