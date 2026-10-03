@@ -2,14 +2,13 @@ package com.example.CoreCommerce.controller;
 
 import com.example.CoreCommerce.dto.*;
 import com.example.CoreCommerce.entity.Pedido;
-import com.example.CoreCommerce.entity.StatusPedido;
 import com.example.CoreCommerce.service.PedidoService;
-import jakarta.servlet.ServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.List;
 
@@ -26,7 +25,7 @@ public class PedidoController {
     }
 
     @GetMapping("/pedidos/{id}/itens")
-    public List<ItemPedidoResponseDTO> listarPedidos(@PathVariable Long id) {
+    public List<ItemPedidoResponseDTO> listarItensPedidos(@PathVariable Long id) {
         return pedidoService.listarItemPedido(id);
     }
 
@@ -41,5 +40,14 @@ public class PedidoController {
        return pedidoService.atualizarStatusPedido(id, statusPedidoDTO);
     }
 
+    @GetMapping("/pedidos/buscar")
+        public Page<PedidoResponseDTO> buscarPedidos(@RequestParam (required = false) String nome,
+                @RequestParam (required = false) String cnpj,
+                @RequestParam (required = false) String cpf,
+                @RequestParam (defaultValue = "0") int page,
+                @RequestParam (defaultValue = "10") int size){
 
+        Pageable pagable = PageRequest.of(page, size);
+        return pedidoService.buscarPedidos(nome, cnpj, cpf, pagable);
+    }
 }

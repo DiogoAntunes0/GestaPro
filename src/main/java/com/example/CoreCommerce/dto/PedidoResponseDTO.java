@@ -1,5 +1,7 @@
 package com.example.CoreCommerce.dto;
 
+import com.example.CoreCommerce.entity.Cliente;
+import com.example.CoreCommerce.entity.Pedido;
 import com.example.CoreCommerce.entity.StatusPedido;
 
 import java.time.LocalDateTime;
@@ -11,6 +13,16 @@ public record PedidoResponseDTO(
         LocalDateTime dataPedido,
         List<ItemPedidoResponseDTO> itens,
         Double valorTotal,
-        StatusPedido status
-) {
+        StatusPedido status) {
+
+    public PedidoResponseDTO(Pedido pedido) {
+        this(
+                pedido.getId(),
+                pedido.getCliente().getNome(),
+                pedido.getDataPedido(),
+                pedido.getItens().stream().map(ItemPedidoResponseDTO::new).toList(), // Converte a lista de itens da entidade para DTO
+                pedido.getValorTotal(),
+                pedido.getStatus()
+        );
+    }
 }

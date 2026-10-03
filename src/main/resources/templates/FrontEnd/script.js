@@ -33,6 +33,11 @@ let clienteBuscaAtiva = false;
 let clienteSearchTermoAtual = '';
 let clienteSearchDebounceTimer = null;
 
+// Controle da busca paginada de pedidos (termo) no backend
+let pedidoBuscaAtiva = false;
+let pedidoSearchTermoAtual = '';
+let pedidoSearchDebounceTimer = null;
+
 /* ══════════════════════════════════════
    PAGINAÇÃO
    Um controle de página por entidade
@@ -185,13 +190,18 @@ function doLogout() {
   state.clientes = [];
   state.produtos = [];
   state.pedidos = [];
+  
   paginacao.clientes.pagina = 0;
   paginacao.produtos.pagina = 0;
   paginacao.pedidos.pagina = 0;
+  
   produtoBuscaAtiva = false;
   produtoSearchTermoAtual = '';
   clienteBuscaAtiva = false;
   clienteSearchTermoAtual = '';
+  pedidoBuscaAtiva = false;
+  pedidoSearchTermoAtual = '';
+  
   localStorage.removeItem('orderflow_token');
   localStorage.removeItem('orderflow_user');
   document.getElementById('mainApp').classList.add('hidden');
@@ -232,9 +242,7 @@ async function carregarPagina(entidade) {
   }
 }
 
-/* ── Busca paginada de produtos por nome/sku (backend) ──
-   Endpoint: GET /api/produtos/buscar?nome=&sku=&page=&size=
-   Retorna qualquer produto cujo nome OU sku bata com o termo digitado. */
+/* ── Busca paginada de produtos por nome/sku (backend) ── */
 async function carregarBuscaProdutos() {
   const p = paginacao.produtos;
   try {
@@ -269,7 +277,6 @@ async function carregarBuscaProdutos() {
 async function carregarBuscaClientes() {
   const p = paginacao.clientes;
   try {
-    // Atualizado para mapear o termo de pesquisa para os 3 parâmetros do Controller
     const qs = new URLSearchParams({
       cnpj: clienteSearchTermoAtual,
       nome: clienteSearchTermoAtual,
@@ -289,9 +296,44 @@ async function carregarBuscaClientes() {
       p.totalPaginas = 1;
       atualizarControlesPaginacao('clientes', { number: 0, totalPages: 1, first: true, last: true });
     }
+    
+    const semResultado = document.getElementById('semResultadoClientes');
+    if (semResultado) semResultado.classList.toggle('hidden', conteudo.length > 0);
   } catch (err) {
     state.clientes = [];
     showToast('error', 'Erro ao buscar clientes');
+  }
+}
+
+/* ── Busca paginada de pedidos (backend) ── */
+async function carregarBuscaPedidos() {
+  const p = paginacao.pedidos;
+  try {
+    const qs = new URLSearchParams({
+      nome: pedidoSearchTermoAtual,
+      cnpj: pedidoSearchTermoAtual,
+      cpf: pedidoSearchTermoAtual,
+      page: p.pagina,
+      size: p.tamanho
+    });
+
+    const dados = await apiFetch(`/api/pedidos/buscar?${qs.toString()}`);
+    const conteudo = Array.isArray(dados) ? dados : (dados.content || dados.data || []);
+    state.pedidos = conteudo;
+
+    if (!Array.isArray(dados)) {
+      p.totalPaginas = dados.totalPages ?? 0;
+      atualizarControlesPaginacao('pedidos', dados);
+    } else {
+      p.totalPaginas = 1;
+      atualizarControlesPaginacao('pedidos', { number: 0, totalPages: 1, first: true, last: true });
+    }
+
+    const semResultado = document.getElementById('semResultadoPedidos');
+    if (semResultado) semResultado.classList.toggle('hidden', conteudo.length > 0);
+  } catch (err) {
+    state.pedidos = [];
+    showToast('error', 'Erro ao buscar pedidos');
   }
 }
 
@@ -300,15 +342,13 @@ function atualizarControlesPaginacao(entidade, dados) {
   renderPaginacao(entidade);
 }
 
-/* ── Componente de paginação (renderizado dinamicamente) ──
-   Requer apenas uma div no HTML: <div id="paginacao-clientes"></div>
-   (troque "clientes" por "produtos" / "pedidos" em cada seção)          */
+/* ── Componente de paginação (renderizado dinamicamente) ── */
 function renderPaginacao(entidade) {
   const container = document.getElementById(`paginacao-${entidade}`);
-  if (!container) return; // div ainda não existe no HTML dessa seção
+  if (!container) return; 
 
   const p = paginacao[entidade];
-  const paginaAtual  = p.pagina;       // 0-indexed
+  const paginaAtual  = p.pagina;       
   const totalPaginas = p.totalPaginas || 1;
 
   if (totalPaginas <= 1) {
@@ -316,11 +356,9 @@ function renderPaginacao(entidade) {
     return;
   }
 
-  // Calcula o range de itens sendo exibidos (ex: "Mostrando 11–20 de 47")
   const inicio = paginaAtual * p.tamanho + 1;
   const fim    = Math.min(inicio + p.tamanho - 1, p.totalElementos);
 
-  // Gera a lista de números de página a exibir, com "..." quando há muitas
   const paginas = gerarRangePaginas(paginaAtual, totalPaginas);
 
   const botoesNumeros = paginas.map(pg => {
@@ -347,9 +385,8 @@ function renderPaginacao(entidade) {
   `;
 }
 
-// Decide quais números mostrar: sempre 1ª, última, atual ±1, com "..." no meio
 function gerarRangePaginas(atual, total) {
-  const janela = 1; // quantas páginas mostrar de cada lado da atual
+  const janela = 1; 
   const paginas = [];
 
   for (let i = 0; i < total; i++) {
@@ -365,7 +402,6 @@ function gerarRangePaginas(atual, total) {
   return paginas;
 }
 
-// Clique direto em um número de página
 async function irParaPagina(entidade, numeroPagina) {
   const p = paginacao[entidade];
   if (numeroPagina === p.pagina || numeroPagina < 0 || numeroPagina >= p.totalPaginas) return;
@@ -376,13 +412,14 @@ async function irParaPagina(entidade, numeroPagina) {
     await carregarBuscaProdutos();
   } else if (entidade === 'clientes' && clienteBuscaAtiva) {
     await carregarBuscaClientes();
+  } else if (entidade === 'pedidos' && pedidoBuscaAtiva) {
+    await carregarBuscaPedidos();
   } else {
     await carregarPagina(entidade);
   }
   rerenderTabela(entidade);
 }
 
-// Chamado pelos botões "Anterior" / "Próximo" de cada tabela
 async function mudarPagina(entidade, direcao) {
   const p = paginacao[entidade];
   const novaPagina = p.pagina + direcao;
@@ -395,6 +432,8 @@ async function mudarPagina(entidade, direcao) {
     await carregarBuscaProdutos();
   } else if (entidade === 'clientes' && clienteBuscaAtiva) {
     await carregarBuscaClientes();
+  } else if (entidade === 'pedidos' && pedidoBuscaAtiva) {
+    await carregarBuscaPedidos();
   } else {
     await carregarPagina(entidade);
   }
@@ -405,8 +444,6 @@ function rerenderTabela(entidade) {
   if (entidade === 'clientes') renderClientes();
   if (entidade === 'produtos') renderProdutos();
   if (entidade === 'pedidos')  renderPedidos();
-
-  // Dashboard depende de pedidos/produtos/clientes, então atualiza também
   renderDashboard();
 }
 
@@ -447,14 +484,10 @@ function closeModal(id) {
 }
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) {
-    // O modal de confirmação tem sua própria lógica de cancelamento
-    // (precisa disparar o callback de "cancelar" antes de fechar)
     if (e.target.id === 'modalConfirmacao') {
       cancelarConfirmacao();
       return;
     }
-    // Enquanto o pedido está sendo enviado (aguardando resposta/e-mail),
-    // não deixa fechar clicando fora do modal
     if (e.target.id === 'modalNovoPedido' && criandoPedido) {
       return;
     }
@@ -466,20 +499,10 @@ document.addEventListener('click', e => {
 
 /* ══════════════════════════════════════
    MODAL DE CONFIRMAÇÃO (genérico)
-   Usado para: exclusão de registros e
-   alteração de status de pedido.
 ══════════════════════════════════════ */
 let confirmacaoCallbackOk = null;
 let confirmacaoCallbackCancel = null;
 
-/**
- * Abre o modal de confirmação genérico.
- * titulo        -> título exibido no modal
- * mensagem      -> texto explicando a ação
- * onConfirmar   -> função chamada se o usuário confirmar
- * variante      -> 'danger' (vermelho, para exclusões) ou 'primary' (para outras ações)
- * onCancelar    -> (opcional) função chamada se o usuário cancelar/fechar o modal
- */
 function abrirConfirmacao(titulo, mensagem, onConfirmar, variante = 'danger', onCancelar = null) {
   document.getElementById('confirmTitulo').textContent = titulo;
   document.getElementById('confirmMensagem').textContent = mensagem;
@@ -550,21 +573,15 @@ function maskCEP(el) {
   v = v.replace(/(\d{5})(\d)/, '$1-$2');
   el.value = v;
 
-  // Assim que o CEP tiver os 8 dígitos, busca o endereço automaticamente
   if (v.replace(/\D/g, '').length === 8) {
     buscarCEP(el);
   }
 }
 
-/* ══════════════════════════════════════
-   BUSCA DE ENDEREÇO POR CEP (ViaCEP)
-   Endpoint: https://viacep.com.br/ws/{cep}/json/
-══════════════════════════════════════ */
 async function buscarCEP(el) {
   const cepLimpo = el.value.replace(/\D/g, '');
-  if (cepLimpo.length !== 8) return; // só busca quando tiver os 8 dígitos
+  if (cepLimpo.length !== 8) return; 
 
-  // feedback visual simples enquanto busca
   el.disabled = true;
 
   try {
@@ -585,13 +602,12 @@ async function buscarCEP(el) {
   }
 }
 
-// Mapeia o retorno do ViaCEP para os campos do formulário de cliente
 function preencherEnderecoCliente(dados) {
   const campos = {
     cliLogradouro: dados.logradouro,
     cliComplemento: dados.complemento,
     cliBairro: dados.bairro,
-    cliLocalidade: dados.localidade, // campo "Cidade" no formulário
+    cliLocalidade: dados.localidade, 
     cliUf: dados.uf,
     cliEstado: dados.estado,
     cliRegiao: dados.regiao
@@ -602,13 +618,10 @@ function preencherEnderecoCliente(dados) {
     if (el) el.value = valor || '';
   });
 
-  // Foca no campo de número/complemento para o usuário continuar o preenchimento
   const logradouroEl = document.getElementById('cliLogradouro');
   if (logradouroEl) logradouroEl.focus();
 }
 
-// Aplica a máscara certa no campo de documento do modal de cliente,
-// conforme o tipo (CPF/CNPJ) selecionado no momento
 function maskDocumento(el) {
   if (tipoClienteAtual === 'CNPJ') maskCNPJ(el);
   else maskCPF(el);
@@ -617,8 +630,6 @@ function maskDocumento(el) {
 /* ══════════════════════════════════════
    CLIENTES
 ══════════════════════════════════════ */
-
-// Alterna entre Pessoa Física (CPF) e Pessoa Jurídica (CNPJ) no modal de Novo Cliente
 function toggleTipoCliente(tipo, el) {
   tipoClienteAtual = tipo;
 
@@ -630,7 +641,7 @@ function toggleTipoCliente(tipo, el) {
   const docLabel  = document.getElementById('cliDocLabel');
   const docInput  = document.getElementById('cliDocumento');
 
-  docInput.value = ''; // evita enviar documento com formato/tamanho do tipo anterior
+  docInput.value = ''; 
 
   if (tipo === 'CNPJ') {
     nomeLabel.textContent = 'Nome da empresa/Fantasia';
@@ -664,7 +675,7 @@ function resetClienteForm() {
 async function criarCliente() {
   const nome      = document.getElementById('cliNome').value.trim();
   const email     = document.getElementById('cliEmail').value.trim();
-  const documento = limparCPF(document.getElementById('cliDocumento').value); // remove pontuação, serve para CPF ou CNPJ
+  const documento = limparCPF(document.getElementById('cliDocumento').value); 
 
   const endereco = {
     cep: document.getElementById('cliCep').value.trim(),
@@ -682,15 +693,12 @@ async function criarCliente() {
     return;
   }
 
-  // Validação da quantidade de dígitos conforme o tipo selecionado
   const tamanhoEsperado = tipoClienteAtual === 'CNPJ' ? 14 : 11;
   if (documento.length !== tamanhoEsperado) {
     showToast('error', `${tipoClienteAtual} inválido: informe ${tamanhoEsperado} dígitos.`);
     return;
   }
 
-  // Endpoint único — envia cpf ou cnpj no mesmo DTO, conforme o tipo selecionado
-  // tipoPessoa é obrigatório para o backend decidir qual campo persistir
   const payload = tipoClienteAtual === 'CNPJ'
     ? { nome, email, tipoPessoa: 'PESSOA_JURIDICA', cpf: null, cnpj: documento, endereco }
     : { nome, email, tipoPessoa: 'PESSOA_FISICA', cpf: documento, cnpj: null, endereco };
@@ -701,7 +709,6 @@ async function criarCliente() {
       body: JSON.stringify(payload)
     });
 
-    // Volta para a primeira página e recarrega para refletir o novo registro
     paginacao.clientes.pagina = 0;
     
     if (clienteBuscaAtiva) {
@@ -771,7 +778,6 @@ async function salvarEmailCliente() {
       body: JSON.stringify({ id: parseInt(id), email })
     });
 
-    // Recarrega a página atual para refletir a alteração
     if (clienteBuscaAtiva) {
       await carregarBuscaClientes();
     } else {
@@ -786,7 +792,6 @@ async function salvarEmailCliente() {
   }
 }
 
-// Abre a confirmação antes de remover o cliente
 function removeCliente(id) {
   const cli = state.clientes.find(c => String(c.id) === String(id));
   const nome = cli ? (cli.nome || cli.name) : '';
@@ -799,12 +804,10 @@ function removeCliente(id) {
   );
 }
 
-// Só executa a exclusão de fato depois que o usuário confirma no modal
 async function executarRemoverCliente(id) {
   try {
     await apiFetch(`/api/clientes/${id}`, { method: 'DELETE' });
 
-    // Se era o último item da página e não é a primeira, volta uma página
     if (state.clientes.length === 1 && paginacao.clientes.pagina > 0) {
       paginacao.clientes.pagina -= 1;
     }
@@ -830,19 +833,20 @@ function onClienteSearchInput(termo) {
 async function executarBuscaCliente(termoBruto) {
   const termo = (termoBruto || '').trim();
 
-  // Campo limpo -> volta pra listagem paginada normal
   if (!termo) {
     clienteBuscaAtiva = false;
     clienteSearchTermoAtual = '';
     paginacao.clientes.pagina = 0;
     await carregarPagina('clientes');
     rerenderTabela('clientes');
+    const semResultado = document.getElementById('semResultadoClientes');
+    if (semResultado) semResultado.classList.add('hidden');
     return;
   }
 
   clienteBuscaAtiva = true;
   clienteSearchTermoAtual = termo;
-  paginacao.clientes.pagina = 0; // toda nova busca reinicia na página 0
+  paginacao.clientes.pagina = 0; 
   await carregarBuscaClientes();
   rerenderTabela('clientes');
 }
@@ -900,7 +904,6 @@ async function criarProduto() {
         body: JSON.stringify(payload)
       });
 
-      // Recarrega a página/busca atual para refletir a alteração
       if (produtoBuscaAtiva) {
         await carregarBuscaProdutos();
       } else {
@@ -916,7 +919,6 @@ async function criarProduto() {
         body: JSON.stringify(payload)
       });
 
-      // Volta para a primeira página e recarrega para refletir o novo registro
       paginacao.produtos.pagina = 0;
       if (produtoBuscaAtiva) {
         await carregarBuscaProdutos();
@@ -966,7 +968,6 @@ function renderProdutos() {
   }).join('');
 }
 
-// Abre a confirmação antes de remover o produto
 function removeProduto(id) {
   const prod = state.produtos.find(p => String(p.id) === String(id));
   const nome = prod ? getProdutoNome(prod) : '';
@@ -979,7 +980,6 @@ function removeProduto(id) {
   );
 }
 
-// Só executa a exclusão de fato depois que o usuário confirma no modal
 async function executarRemoverProduto(id) {
   try {
     await apiFetch(`/api/produtos/${id}`, { method: 'DELETE' });
@@ -1000,9 +1000,6 @@ async function executarRemoverProduto(id) {
   }
 }
 
-/* ── Busca de produtos por nome/sku (backend, paginada, com debounce) ──
-   Endpoint: GET /api/produtos/buscar?nome=&sku=&page=&size=
-   Ao limpar o campo, volta para a listagem paginada normal.          */
 function onProdutoSearchInput(termo) {
   clearTimeout(produtoSearchDebounceTimer);
   produtoSearchDebounceTimer = setTimeout(() => executarBuscaProduto(termo), 300);
@@ -1011,7 +1008,6 @@ function onProdutoSearchInput(termo) {
 async function executarBuscaProduto(termoBruto) {
   const termo = (termoBruto || '').trim();
 
-  // Campo limpo -> volta pra listagem paginada normal
   if (!termo) {
     produtoBuscaAtiva = false;
     produtoSearchTermoAtual = '';
@@ -1025,7 +1021,7 @@ async function executarBuscaProduto(termoBruto) {
 
   produtoBuscaAtiva = true;
   produtoSearchTermoAtual = termo;
-  paginacao.produtos.pagina = 0; // toda nova busca reinicia na página 0
+  paginacao.produtos.pagina = 0; 
   await carregarBuscaProdutos();
   rerenderTabela('produtos');
 }
@@ -1043,8 +1039,32 @@ function getProdutoNome(p) {
   return p.nome || p.name || '';
 }
 
-/* Seleções e resultados do autocomplete do modal Novo Pedido.
-   A busca roda no BANCO INTEIRO (backend), não só na página carregada. */
+function onPedidoSearchInput(termo) {
+  clearTimeout(pedidoSearchDebounceTimer);
+  pedidoSearchDebounceTimer = setTimeout(() => executarBuscaPedido(termo), 300);
+}
+
+async function executarBuscaPedido(termoBruto) {
+  const termo = (termoBruto || '').trim();
+
+  if (!termo) {
+    pedidoBuscaAtiva = false;
+    pedidoSearchTermoAtual = '';
+    paginacao.pedidos.pagina = 0;
+    await carregarPagina('pedidos');
+    rerenderTabela('pedidos');
+    const semResultado = document.getElementById('semResultadoPedidos');
+    if (semResultado) semResultado.classList.add('hidden');
+    return;
+  }
+
+  pedidoBuscaAtiva = true;
+  pedidoSearchTermoAtual = termo;
+  paginacao.pedidos.pagina = 0; 
+  await carregarBuscaPedidos();
+  rerenderTabela('pedidos');
+}
+
 let clienteBuscaTimer = null;
 let produtoBuscaTimer = null;
 let pedidoClienteSelecionado = null;
@@ -1055,13 +1075,11 @@ let pedidoProdutosResultado = [];
 const norm = s => (s || '').trim().toLowerCase();
 
 function populatePedidoSelects() {
-  // Zera seleções e resultados do autocomplete
   pedidoClienteSelecionado = null;
   pedidoProdutoSelecionado = null;
   pedidoClientesResultado = [];
   pedidoProdutosResultado = [];
 
-  // Limpa a busca de cliente e produto ao abrir o modal
   const clienteBusca = document.getElementById('pedidoClienteBusca');
   const produtoBusca = document.getElementById('pedidoProdutoBusca');
   if (clienteBusca) clienteBusca.value = '';
@@ -1075,9 +1093,7 @@ function populatePedidoSelects() {
   renderCart();
 }
 
-/* ---------- Autocomplete: CLIENTE ---------- */
 function buscarClientePedido(termo) {
-  // se o texto mudou, invalida o cliente selecionado
   if (pedidoClienteSelecionado && norm(pedidoClienteSelecionado.nome) !== norm(termo)) {
     pedidoClienteSelecionado = null;
     document.getElementById('pedidoClienteId').value = '';
@@ -1096,13 +1112,11 @@ async function executarBuscaClientePedido(termoBruto) {
     return;
   }
 
-  // Agora usamos apenas o parâmetro "termo", que o backend procura em Nome, CPF ou CNPJ
   const qs = new URLSearchParams({ termo: termo, page: 0, size: 8 });
 
   try {
     const dados = await apiFetch(`/api/clientes/buscar?${qs.toString()}`);
 
-    // descarta resposta antiga se o usuário já digitou outra coisa
     if (document.getElementById('pedidoClienteBusca').value.trim() !== termo) return;
 
     pedidoClientesResultado = Array.isArray(dados) ? dados : (dados.content || []);
@@ -1129,7 +1143,6 @@ function selecionarClientePedido(id) {
   fecharListaAutocomplete('pedidoClienteLista');
 }
 
-/* ---------- Autocomplete: PRODUTO ---------- */
 function buscarProdutoPedido(termo) {
   if (pedidoProdutoSelecionado && norm(getProdutoNome(pedidoProdutoSelecionado)) !== norm(termo)) {
     pedidoProdutoSelecionado = null;
@@ -1156,7 +1169,6 @@ async function executarBuscaProdutoPedido(termoBruto) {
     if (document.getElementById('pedidoProdutoBusca').value.trim() !== termo) return;
 
     const todos = Array.isArray(dados) ? dados : (dados.content || []);
-    // só sugere produtos com estoque disponível
     pedidoProdutosResultado = todos.filter(p => getProdutoEstoque(p) > 0);
 
     if (!todos.length) {
@@ -1190,7 +1202,6 @@ function fecharListaAutocomplete(listaId) {
   if (lista) lista.classList.add('hidden');
 }
 
-// Fecha as listas de autocomplete ao clicar fora delas
 document.addEventListener('click', e => {
   if (!e.target.closest('#pedidoClienteBusca') && !e.target.closest('#pedidoClienteLista')) {
     fecharListaAutocomplete('pedidoClienteLista');
@@ -1222,7 +1233,6 @@ function addCartItem() {
   });
   renderCart();
 
-  // limpa a busca e a seleção de produto para o usuário adicionar o próximo item
   pedidoProdutoSelecionado = null;
   document.getElementById('pedidoProdutoBusca').value = '';
   document.getElementById('pedidoProdutoId').value = '';
@@ -1255,12 +1265,10 @@ function renderCart() {
 
 function removeCartItem(i) { state.cart.splice(i, 1); renderCart(); }
 
-// Controla se um pedido está sendo enviado no momento
-// (usado para travar o modal e impedir fechamento no meio do envio)
 let criandoPedido = false;
 
 async function criarPedido() {
-  if (criandoPedido) return; // evita duplo clique enquanto já está enviando
+  if (criandoPedido) return; 
 
   const clienteId = parseInt(document.getElementById('pedidoClienteId').value);
   if (!clienteId) { showToast('error', 'Selecione um cliente na lista de sugestões'); return; }
@@ -1281,7 +1289,6 @@ async function criarPedido() {
   const btnFechar   = document.getElementById('btnFecharPedido');
   const textoOriginalBtn = btnCriar.innerHTML;
 
-  // ── liga o estado de "enviando" (spinner + botões travados) ──
   criandoPedido = true;
   btnCriar.disabled = true;
   btnCriar.innerHTML = '<span class="spinner"></span> Enviando pedido...';
@@ -1294,15 +1301,14 @@ async function criarPedido() {
       body: JSON.stringify(payload)
     });
 
-    // busca as páginas atuais atualizadas direto do backend
     paginacao.pedidos.pagina = 0;
     await Promise.all([
-      carregarPagina('pedidos'),
+      (pedidoBuscaAtiva ? carregarBuscaPedidos() : carregarPagina('pedidos')),
       (produtoBuscaAtiva ? carregarBuscaProdutos() : carregarPagina('produtos'))
     ]);
 
     state.cart = [];
-    criandoPedido = false; // libera antes de fechar, pois closeModal reseta o carrinho
+    criandoPedido = false; 
     closeModal('modalNovoPedido');
     renderAll();
     const emailCliente = cliente?.email || '';
@@ -1310,7 +1316,6 @@ async function criarPedido() {
   } catch (err) {
     showToast('error', err.message || 'Erro ao criar pedido');
   } finally {
-    // ── desliga o estado de "enviando", restaurando os botões ──
     criandoPedido = false;
     btnCriar.disabled = false;
     btnCriar.innerHTML = textoOriginalBtn;
@@ -1326,14 +1331,8 @@ function filterPedidos(status, el) {
   renderPedidos();
 }
 
-// Rótulos usados nas mensagens de confirmação
 const LABEL_STATUS = { AGUARDANDO: 'Aguardando', PAGO: 'Pago', CANCELADO: 'Cancelado' };
 
-/**
- * Disparado pelo onchange do <select> de status.
- * Abre a confirmação; se o usuário cancelar, o select volta
- * para o valor anterior (não perde o estado visualmente).
- */
 function confirmarStatusPedido(pedidoId, novoStatus, selectEl) {
   const statusAnterior = selectEl.getAttribute('data-status-anterior') || novoStatus;
 
@@ -1342,11 +1341,10 @@ function confirmarStatusPedido(pedidoId, novoStatus, selectEl) {
     `Deseja realmente alterar o status do pedido #${String(pedidoId).slice(-4)} para "${LABEL_STATUS[novoStatus] || novoStatus}"? Depois de confirmado, o status não poderá ser alterado novamente.`,
     () => executarAtualizarStatus(pedidoId, novoStatus, selectEl),
     'primary',
-    () => { selectEl.value = statusAnterior; } // cancelou: reverte a seleção
+    () => { selectEl.value = statusAnterior; } 
   );
 }
 
-// Só chama a API depois que o usuário confirma no modal
 async function executarAtualizarStatus(pedidoId, statusPedido, selectEl) {
   try {
     await apiFetch(`/api/pedidos/${pedidoId}/status`, {
@@ -1357,8 +1355,6 @@ async function executarAtualizarStatus(pedidoId, statusPedido, selectEl) {
     const p = state.pedidos.find(p => p.id === pedidoId);
     if (p) p.status = statusPedido;
 
-    // renderAll() recria o <select> já travado (disabled),
-    // pois o status deixou de ser 'AGUARDANDO'
     renderAll();
     showToast('success', 'Status atualizado! Este pedido não poderá mais ter o status alterado.');
   } catch (err) {
@@ -1370,8 +1366,6 @@ async function executarAtualizarStatus(pedidoId, statusPedido, selectEl) {
 
 /* ══════════════════════════════════════
    VER ITENS DO PEDIDO
-   Endpoint esperado: GET /api/pedidos/{id}/itens
-   Retorno esperado: [{ nomeProduto, quantidade, precoVenda }]
 ══════════════════════════════════════ */
 async function verItensPedido(pedidoId) {
   document.getElementById('itensPedidoNumero').textContent = `#${String(pedidoId).slice(-4)}`;
@@ -1428,8 +1422,6 @@ function renderPedidos() {
     const itens       = p.itens || p.items || [];
     const total       = p.valorTotal || p.total || 0;
     const status      = p.status || p.statusPedido || 'AGUARDANDO';
-    // Uma vez que o pedido saiu de "Aguardando", o status fica travado
-    // (definido ou pelo backend, ou por uma confirmação anterior do usuário)
     const statusTravado = status !== 'AGUARDANDO';
     return `
     <tr>
