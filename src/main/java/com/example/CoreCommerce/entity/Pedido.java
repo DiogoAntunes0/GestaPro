@@ -77,5 +77,9 @@ public class Pedido {
     public Double getValorTotal() {
         return valorTotal;
     }
+
+    public StatusPedido getStatus() {
+        return getStatusPedido();
+    }
 }
 

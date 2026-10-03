@@ -131,4 +131,10 @@ public class PedidoService {
                pedido.getStatusPedido()
        );
     }
+
+    public Page<PedidoResponseDTO> buscarPedidos(String nome, String cnpj, String cpf, Pageable pagable) {
+        Page<Pedido> pedidos = pedidoRepository.buscarPedidos(nome, cnpj, cpf,pagable);
+
+        return pedidos.map(PedidoResponseDTO::new);
+    }
 }
