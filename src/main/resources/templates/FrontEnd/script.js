@@ -28,6 +28,11 @@ let produtoBuscaAtiva = false;
 let produtoSearchTermoAtual = '';
 let produtoSearchDebounceTimer = null;
 
+// Controle da busca paginada de clientes (termo) no backend
+let clienteBuscaAtiva = false;
+let clienteSearchTermoAtual = '';
+let clienteSearchDebounceTimer = null;
+
 /* ══════════════════════════════════════
    PAGINAÇÃO
    Um controle de página por entidade
@@ -185,6 +190,8 @@ function doLogout() {
   paginacao.pedidos.pagina = 0;
   produtoBuscaAtiva = false;
   produtoSearchTermoAtual = '';
+  clienteBuscaAtiva = false;
+  clienteSearchTermoAtual = '';
   localStorage.removeItem('orderflow_token');
   localStorage.removeItem('orderflow_user');
   document.getElementById('mainApp').classList.add('hidden');
@@ -255,6 +262,36 @@ async function carregarBuscaProdutos() {
   } catch (err) {
     state.produtos = [];
     showToast('error', 'Erro ao buscar produtos');
+  }
+}
+
+/* ── Busca paginada de clientes (backend) ── */
+async function carregarBuscaClientes() {
+  const p = paginacao.clientes;
+  try {
+    // Atualizado para mapear o termo de pesquisa para os 3 parâmetros do Controller
+    const qs = new URLSearchParams({
+      cnpj: clienteSearchTermoAtual,
+      nome: clienteSearchTermoAtual,
+      cpf: clienteSearchTermoAtual,
+      page: p.pagina,
+      size: p.tamanho
+    });
+
+    const dados = await apiFetch(`/api/clientes/buscar?${qs.toString()}`);
+    const conteudo = Array.isArray(dados) ? dados : (dados.content || dados.data || []);
+    state.clientes = conteudo;
+
+    if (!Array.isArray(dados)) {
+      p.totalPaginas = dados.totalPages ?? 0;
+      atualizarControlesPaginacao('clientes', dados);
+    } else {
+      p.totalPaginas = 1;
+      atualizarControlesPaginacao('clientes', { number: 0, totalPages: 1, first: true, last: true });
+    }
+  } catch (err) {
+    state.clientes = [];
+    showToast('error', 'Erro ao buscar clientes');
   }
 }
 
@@ -334,8 +371,11 @@ async function irParaPagina(entidade, numeroPagina) {
   if (numeroPagina === p.pagina || numeroPagina < 0 || numeroPagina >= p.totalPaginas) return;
 
   p.pagina = numeroPagina;
+  
   if (entidade === 'produtos' && produtoBuscaAtiva) {
     await carregarBuscaProdutos();
+  } else if (entidade === 'clientes' && clienteBuscaAtiva) {
+    await carregarBuscaClientes();
   } else {
     await carregarPagina(entidade);
   }
@@ -350,8 +390,11 @@ async function mudarPagina(entidade, direcao) {
   if (novaPagina < 0 || novaPagina >= p.totalPaginas) return;
 
   p.pagina = novaPagina;
+  
   if (entidade === 'produtos' && produtoBuscaAtiva) {
     await carregarBuscaProdutos();
+  } else if (entidade === 'clientes' && clienteBuscaAtiva) {
+    await carregarBuscaClientes();
   } else {
     await carregarPagina(entidade);
   }
@@ -660,7 +703,12 @@ async function criarCliente() {
 
     // Volta para a primeira página e recarrega para refletir o novo registro
     paginacao.clientes.pagina = 0;
-    await carregarPagina('clientes');
+    
+    if (clienteBuscaAtiva) {
+      await carregarBuscaClientes();
+    } else {
+      await carregarPagina('clientes');
+    }
 
     closeModal('modalNovoCliente');
     renderAll();
@@ -724,7 +772,11 @@ async function salvarEmailCliente() {
     });
 
     // Recarrega a página atual para refletir a alteração
-    await carregarPagina('clientes');
+    if (clienteBuscaAtiva) {
+      await carregarBuscaClientes();
+    } else {
+      await carregarPagina('clientes');
+    }
 
     closeModal('modalEditarCliente');
     renderAll();
@@ -756,7 +808,12 @@ async function executarRemoverCliente(id) {
     if (state.clientes.length === 1 && paginacao.clientes.pagina > 0) {
       paginacao.clientes.pagina -= 1;
     }
-    await carregarPagina('clientes');
+    
+    if (clienteBuscaAtiva) {
+      await carregarBuscaClientes();
+    } else {
+      await carregarPagina('clientes');
+    }
 
     renderAll();
     showToast('success', 'Cliente removido.');
@@ -764,6 +821,32 @@ async function executarRemoverCliente(id) {
     showToast('error', err.message || 'Erro ao remover cliente');
   }
 }
+
+function onClienteSearchInput(termo) {
+  clearTimeout(clienteSearchDebounceTimer);
+  clienteSearchDebounceTimer = setTimeout(() => executarBuscaCliente(termo), 300);
+}
+
+async function executarBuscaCliente(termoBruto) {
+  const termo = (termoBruto || '').trim();
+
+  // Campo limpo -> volta pra listagem paginada normal
+  if (!termo) {
+    clienteBuscaAtiva = false;
+    clienteSearchTermoAtual = '';
+    paginacao.clientes.pagina = 0;
+    await carregarPagina('clientes');
+    rerenderTabela('clientes');
+    return;
+  }
+
+  clienteBuscaAtiva = true;
+  clienteSearchTermoAtual = termo;
+  paginacao.clientes.pagina = 0; // toda nova busca reinicia na página 0
+  await carregarBuscaClientes();
+  rerenderTabela('clientes');
+}
+
 
 /* ══════════════════════════════════════
    PRODUTOS
@@ -960,7 +1043,24 @@ function getProdutoNome(p) {
   return p.nome || p.name || '';
 }
 
+/* Seleções e resultados do autocomplete do modal Novo Pedido.
+   A busca roda no BANCO INTEIRO (backend), não só na página carregada. */
+let clienteBuscaTimer = null;
+let produtoBuscaTimer = null;
+let pedidoClienteSelecionado = null;
+let pedidoProdutoSelecionado = null;
+let pedidoClientesResultado = [];
+let pedidoProdutosResultado = [];
+
+const norm = s => (s || '').trim().toLowerCase();
+
 function populatePedidoSelects() {
+  // Zera seleções e resultados do autocomplete
+  pedidoClienteSelecionado = null;
+  pedidoProdutoSelecionado = null;
+  pedidoClientesResultado = [];
+  pedidoProdutosResultado = [];
+
   // Limpa a busca de cliente e produto ao abrir o modal
   const clienteBusca = document.getElementById('pedidoClienteBusca');
   const produtoBusca = document.getElementById('pedidoProdutoBusca');
@@ -975,88 +1075,111 @@ function populatePedidoSelects() {
   renderCart();
 }
 
-/* ── Autocomplete: Cliente (modal Novo Pedido) ──
-   Filtra pelo nome (e também por CPF/CNPJ, ignorando pontuação)
-   dentro dos clientes já carregados em state.clientes.               */
+/* ---------- Autocomplete: CLIENTE ---------- */
 function buscarClientePedido(termo) {
-  const lista = document.getElementById('pedidoClienteLista');
-  const termoLimpo = normalizarTexto(termo);
+  // se o texto mudou, invalida o cliente selecionado
+  if (pedidoClienteSelecionado && norm(pedidoClienteSelecionado.nome) !== norm(termo)) {
+    pedidoClienteSelecionado = null;
+    document.getElementById('pedidoClienteId').value = '';
+  }
+  clearTimeout(clienteBuscaTimer);
+  clienteBuscaTimer = setTimeout(() => executarBuscaClientePedido(termo), 300);
+}
 
-  // Se o texto não bate mais com o cliente selecionado, invalida a seleção
-  const idAtual = document.getElementById('pedidoClienteId').value;
-  if (idAtual) {
-    const selecionado = state.clientes.find(c => String(c.id) === String(idAtual));
-    if (!selecionado || normalizarTexto(selecionado.nome || selecionado.name || '') !== normalizarTexto(termo)) {
-      document.getElementById('pedidoClienteId').value = '';
-    }
+async function executarBuscaClientePedido(termoBruto) {
+  const lista = document.getElementById('pedidoClienteLista');
+  const termo = (termoBruto || '').trim();
+
+  if (!termo) {
+    lista.innerHTML = '<div class="autocomplete-vazio">Digite para buscar um cliente</div>';
+    lista.classList.remove('hidden');
+    return;
   }
 
-  const resultados = state.clientes.filter(c => {
-    const nome = normalizarTexto(c.nome || c.name || '');
-    const doc  = normalizarTexto(c.cpf || c.cnpj || '');
-    return termoLimpo === '' || nome.includes(termoLimpo) || doc.includes(termoLimpo);
-  }).slice(0, 8);
+  // Agora usamos apenas o parâmetro "termo", que o backend procura em Nome, CPF ou CNPJ
+  const qs = new URLSearchParams({ termo: termo, page: 0, size: 8 });
 
-  if (!resultados.length) {
-    lista.innerHTML = `<div class="autocomplete-vazio">Nenhum cliente encontrado</div>`;
-  } else {
-    lista.innerHTML = resultados.map(c => `
-      <div class="autocomplete-item" onclick="selecionarClientePedido(${c.id})">
-        <span class="ac-titulo">${c.nome || c.name || ''}</span>
-        <span class="ac-sub">${c.cpf || c.cnpj || c.email || ''}</span>
-      </div>
-    `).join('');
+  try {
+    const dados = await apiFetch(`/api/clientes/buscar?${qs.toString()}`);
+
+    // descarta resposta antiga se o usuário já digitou outra coisa
+    if (document.getElementById('pedidoClienteBusca').value.trim() !== termo) return;
+
+    pedidoClientesResultado = Array.isArray(dados) ? dados : (dados.content || []);
+
+    lista.innerHTML = pedidoClientesResultado.length
+      ? pedidoClientesResultado.map(c => `
+          <div class="autocomplete-item" onclick="selecionarClientePedido(${c.id})">
+            <span class="ac-titulo">${c.nome || ''}</span>
+            <span class="ac-sub">${c.cpf || c.cnpj || c.email || ''}</span>
+          </div>`).join('')
+      : '<div class="autocomplete-vazio">Nenhum cliente encontrado</div>';
+  } catch (err) {
+    lista.innerHTML = '<div class="autocomplete-vazio">Erro ao buscar clientes</div>';
   }
   lista.classList.remove('hidden');
 }
 
 function selecionarClientePedido(id) {
-  const cli = state.clientes.find(c => String(c.id) === String(id));
+  const cli = pedidoClientesResultado.find(c => String(c.id) === String(id));
   if (!cli) return;
-  document.getElementById('pedidoClienteBusca').value = cli.nome || cli.name || '';
+  pedidoClienteSelecionado = cli;
+  document.getElementById('pedidoClienteBusca').value = cli.nome || '';
   document.getElementById('pedidoClienteId').value = cli.id;
   fecharListaAutocomplete('pedidoClienteLista');
 }
 
-/* ── Autocomplete: Produto (modal Novo Pedido) ──
-   Só sugere produtos com estoque disponível.                          */
+/* ---------- Autocomplete: PRODUTO ---------- */
 function buscarProdutoPedido(termo) {
-  const lista = document.getElementById('pedidoProdutoLista');
-  const termoLimpo = normalizarTexto(termo);
+  if (pedidoProdutoSelecionado && norm(getProdutoNome(pedidoProdutoSelecionado)) !== norm(termo)) {
+    pedidoProdutoSelecionado = null;
+    document.getElementById('pedidoProdutoId').value = '';
+  }
+  clearTimeout(produtoBuscaTimer);
+  produtoBuscaTimer = setTimeout(() => executarBuscaProdutoPedido(termo), 300);
+}
 
-  const idAtual = document.getElementById('pedidoProdutoId').value;
-  if (idAtual) {
-    const selecionado = state.produtos.find(p => String(p.id) === String(idAtual));
-    if (!selecionado || normalizarTexto(getProdutoNome(selecionado)) !== normalizarTexto(termo)) {
-      document.getElementById('pedidoProdutoId').value = '';
-    }
+async function executarBuscaProdutoPedido(termoBruto) {
+  const lista = document.getElementById('pedidoProdutoLista');
+  const termo = (termoBruto || '').trim();
+
+  if (!termo) {
+    lista.innerHTML = '<div class="autocomplete-vazio">Digite para buscar um produto</div>';
+    lista.classList.remove('hidden');
+    return;
   }
 
-  const disponiveis = state.produtos.filter(p => getProdutoEstoque(p) > 0);
-  const resultados = disponiveis.filter(p => {
-    const nome = normalizarTexto(getProdutoNome(p));
-    const sku  = normalizarTexto(p.sku || '');
-    return termoLimpo === '' || nome.includes(termoLimpo) || sku.includes(termoLimpo);
-  }).slice(0, 8);
+  const qs = new URLSearchParams({ nome: termo, sku: termo, page: 0, size: 8 });
 
-  if (!disponiveis.length) {
-    lista.innerHTML = `<div class="autocomplete-vazio">Nenhum produto com estoque</div>`;
-  } else if (!resultados.length) {
-    lista.innerHTML = `<div class="autocomplete-vazio">Nenhum produto encontrado</div>`;
-  } else {
-    lista.innerHTML = resultados.map(p => `
-      <div class="autocomplete-item" onclick="selecionarProdutoPedido(${p.id})">
-        <span class="ac-titulo">${getProdutoNome(p)}</span>
-        <span class="ac-sub">R$ ${Number(getProdutoPreco(p)).toFixed(2)} · estoque: ${getProdutoEstoque(p)}</span>
-      </div>
-    `).join('');
+  try {
+    const dados = await apiFetch(`/api/produtos/buscar?${qs.toString()}`);
+    if (document.getElementById('pedidoProdutoBusca').value.trim() !== termo) return;
+
+    const todos = Array.isArray(dados) ? dados : (dados.content || []);
+    // só sugere produtos com estoque disponível
+    pedidoProdutosResultado = todos.filter(p => getProdutoEstoque(p) > 0);
+
+    if (!todos.length) {
+      lista.innerHTML = '<div class="autocomplete-vazio">Nenhum produto encontrado</div>';
+    } else if (!pedidoProdutosResultado.length) {
+      lista.innerHTML = '<div class="autocomplete-vazio">Nenhum produto com estoque</div>';
+    } else {
+      lista.innerHTML = pedidoProdutosResultado.map(p => `
+        <div class="autocomplete-item" onclick="selecionarProdutoPedido(${p.id})">
+          <span class="ac-titulo">${getProdutoNome(p)}</span>
+          <span class="ac-sub">R$ ${Number(getProdutoPreco(p)).toFixed(2)} · estoque: ${getProdutoEstoque(p)}</span>
+        </div>`).join('');
+    }
+  } catch (err) {
+    lista.innerHTML = '<div class="autocomplete-vazio">Erro ao buscar produtos</div>';
   }
   lista.classList.remove('hidden');
 }
 
 function selecionarProdutoPedido(id) {
-  const prod = state.produtos.find(p => String(p.id) === String(id));
+  const prod = pedidoProdutosResultado.find(p => String(p.id) === String(id));
   if (!prod) return;
+  pedidoProdutoSelecionado = prod;
   document.getElementById('pedidoProdutoBusca').value = getProdutoNome(prod);
   document.getElementById('pedidoProdutoId').value = prod.id;
   fecharListaAutocomplete('pedidoProdutoLista');
@@ -1078,12 +1201,12 @@ document.addEventListener('click', e => {
 });
 
 function addCartItem() {
-  const pId = parseInt(document.getElementById('pedidoProdutoId').value);
+  const prod = pedidoProdutoSelecionado;
   const qtd = parseInt(document.getElementById('pedidoQtd').value);
-  if (!pId) { showToast('error', 'Selecione um produto na lista de sugestões'); return; }
+  if (!prod) { showToast('error', 'Selecione um produto na lista de sugestões'); return; }
   if (!qtd || qtd < 1) { showToast('error', 'Informe uma quantidade válida'); return; }
-  const prod = state.produtos.find(p => p.id === pId);
-  if (!prod) return;
+
+  const pId = prod.id;
   const existing = state.cart.find(i => i.produtoId === pId);
   const totalQtd = (existing ? existing.quantidade : 0) + qtd;
   if (totalQtd > getProdutoEstoque(prod)) {
@@ -1099,7 +1222,8 @@ function addCartItem() {
   });
   renderCart();
 
-  // limpa a busca de produto para o usuário adicionar o próximo item
+  // limpa a busca e a seleção de produto para o usuário adicionar o próximo item
+  pedidoProdutoSelecionado = null;
   document.getElementById('pedidoProdutoBusca').value = '';
   document.getElementById('pedidoProdutoId').value = '';
   document.getElementById('pedidoQtd').value = 1;
@@ -1142,7 +1266,7 @@ async function criarPedido() {
   if (!clienteId) { showToast('error', 'Selecione um cliente na lista de sugestões'); return; }
   if (!state.cart.length) { showToast('error', 'Adicione pelo menos um item'); return; }
 
-  const cliente = state.clientes.find(c => c.id === clienteId);
+  const cliente = pedidoClienteSelecionado;
 
   const payload = {
     clienteId,

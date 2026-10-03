@@ -324,11 +324,10 @@
         </div>
         <div class="card">
 
-          <!-- BUSCA: Clientes por CPF/CNPJ
-               OBS: filtra apenas os clientes já carregados na página atual -->
+          <!-- BUSCA: Clientes por Nome, CPF ou CNPJ (Busca paginada no Backend) -->
           <div class="search-bar">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="buscaClientes" placeholder="Buscar cliente pelo CPF/CNPJ (nesta página)..." maxlength="18" oninput="buscarNaTabela('tabelaClientes', 2, this.value)">
+            <input type="text" id="buscaClientes" placeholder="Buscar cliente por Nome, CPF ou CNPJ..." oninput="onClienteSearchInput(this.value)">
           </div>
 
           <div class="table-wrap">
@@ -339,7 +338,7 @@
               </tbody>
             </table>
           </div>
-          <div id="semResultadoClientes" class="sem-resultado hidden">Nenhum cliente encontrado com esse CPF/CNPJ.</div>
+          <div id="semResultadoClientes" class="sem-resultado hidden">Nenhum cliente encontrado.</div>
 
           <!-- Paginação -->
           <div id="paginacao-clientes"></div>
@@ -701,11 +700,10 @@
  * Funciona em cima do que já está renderizado na tela — não depende
  * de como script.js populou a tabela.
  *
- * Usado hoje pelas buscas de Pedidos e Clientes (filtro local, só na
- * página atual). A busca de Produtos foi migrada para o backend —
- * veja onProdutoSearchInput / carregarBuscaProdutos em script.js.
+ * Usado hoje APENAS pela busca de Pedidos (filtro local, só na
+ * página atual). A busca de Produtos e Clientes foi migrada para o backend.
  *
- * tbodyId   -> id do <tbody> (ex: 'tabelaClientes')
+ * tbodyId   -> id do <tbody> (ex: 'tabelaPedidos')
  * colIndex  -> índice da coluna a comparar (0 = primeira <td>)
  * termo     -> texto digitado pelo usuário
  */
@@ -730,9 +728,9 @@ function buscarNaTabela(tbodyId, colIndex, termo) {
 
   // mensagem de "nenhum resultado" por tabela
   const idsSemResultado = {
-    tabelaClientes: 'semResultadoClientes',
     tabelaPedidos: 'semResultadoPedidos'
   };
+  
   const elSemResultado = document.getElementById(idsSemResultado[tbodyId]);
   if (elSemResultado) {
     elSemResultado.classList.toggle('hidden', !(termoLimpo !== '' && visiveis === 0 && linhas.length > 0));
@@ -741,9 +739,9 @@ function buscarNaTabela(tbodyId, colIndex, termo) {
   // Enquanto uma busca estiver ativa, esconde a paginação
   // (não faz sentido "próxima página" filtrando apenas o que já está na tela)
   const idsPaginacao = {
-    tabelaClientes: 'paginacao-clientes',
     tabelaPedidos: 'paginacao-pedidos'
   };
+  
   const elPaginacao = document.getElementById(idsPaginacao[tbodyId]);
   if (elPaginacao) {
     elPaginacao.style.display = termoLimpo !== '' ? 'none' : '';

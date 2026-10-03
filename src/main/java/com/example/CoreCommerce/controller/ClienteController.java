@@ -1,9 +1,6 @@
 package com.example.CoreCommerce.controller;
 
-import com.example.CoreCommerce.dto.BuscaCepDTO;
-import com.example.CoreCommerce.dto.ClienteDTO;
-import com.example.CoreCommerce.dto.ClienteDTOEmail;
-import com.example.CoreCommerce.dto.ClienteListarDTO;
+import com.example.CoreCommerce.dto.*;
 import com.example.CoreCommerce.entity.Cliente;
 import com.example.CoreCommerce.service.ClienteService;
 import jakarta.validation.Valid;
@@ -12,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -44,5 +43,16 @@ public class ClienteController {
     @GetMapping("/clientes/buscarCep/{cep}")
     public BuscaCepDTO buscarCep(@PathVariable String cep){
         return clienteService.buscarCep(cep);
+    }
+
+    @GetMapping("/clientes/buscar")
+    public Page<BuscaClienteDTO> buscarCLiente(@RequestParam (required = false) String cnpj,
+                                               @RequestParam (required = false) String nome,
+                                               @RequestParam (required = false) String cpf,
+                                               @RequestParam(defaultValue = "0") int page,
+                                               @RequestParam(defaultValue = "10") int size){
+
+        Pageable pageable = PageRequest.of(page, size);
+        return clienteService.buscarClientes(cnpj ,nome, cpf, pageable);
     }
 }
