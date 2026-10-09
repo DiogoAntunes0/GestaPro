@@ -8,7 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="paginacao.css">
-<script src="script.js"></script>
+<!-- defer: executa só depois do HTML carregado, na ordem abaixo -->
+<script src="script.js" defer></script>
+<script src="recuperar-senha.js" defer></script>
 </head>
 <body>
 
@@ -68,6 +70,9 @@
           <input type="password" id="loginPassword" placeholder="••••••••">
         </div>
       </div>
+      <div style="text-align:right;margin-top:10px">
+        <a onclick="showForgot()" style="cursor:pointer;font-size:12px;color:var(--accent2)">Esqueceu a senha?</a>
+      </div>
       <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px;" onclick="doLogin()">Entrar</button>
       <div class="auth-divider">ou</div>
       <div class="auth-switch">Não tem conta? <a onclick="showRegister()">Cadastre-se grátis</a></div>
@@ -102,6 +107,40 @@
       </div>
       <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px;" onclick="doRegister()">Criar conta</button>
       <div class="auth-switch" style="margin-top:14px">Já tem conta? <a onclick="showLogin()">Entrar</a></div>
+    </div>
+
+    <!-- FORGOT PASSWORD FORM -->
+    <div class="auth-box" id="forgotForm" style="display:none">
+      <div class="auth-title">Recuperar senha</div>
+      <div class="auth-sub">Informe seu e-mail e enviaremos um link para redefinir sua senha</div>
+      <div id="forgotMsg"></div>
+      <div class="form-grid" style="gap:14px">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="forgotEmail" placeholder="seu@email.com">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnForgot" style="width:100%;margin-top:20px;padding:12px;" onclick="enviarLinkReset()">Enviar link</button>
+      <div class="auth-switch" style="margin-top:14px">Lembrou a senha? <a onclick="showLogin()">Voltar ao login</a></div>
+    </div>
+
+    <!-- RESET PASSWORD FORM (aberto pelo link do e-mail) -->
+    <div class="auth-box" id="resetForm" style="display:none">
+      <div class="auth-title">Nova senha</div>
+      <div class="auth-sub">Escolha uma nova senha para sua conta</div>
+      <div id="resetMsg"></div>
+      <div class="form-grid" style="gap:14px">
+        <div class="form-group">
+          <label>Nova senha</label>
+          <input type="password" id="resetSenha" placeholder="Mínimo 6 caracteres">
+        </div>
+        <div class="form-group">
+          <label>Confirmar nova senha</label>
+          <input type="password" id="resetConfirm" placeholder="Repita a senha">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnReset" style="width:100%;margin-top:20px;padding:12px;" onclick="redefinirSenha()">Redefinir senha</button>
+      <div class="auth-switch" style="margin-top:14px"><a onclick="showLogin()">Voltar ao login</a></div>
     </div>
   </div>
 </div>
@@ -623,7 +662,7 @@
   }
   .hidden{ display:none; }
 
-  /* Spinner usado durante o envio do pedido (aguardando e-mail de confirmação) */
+  /* Spinner usado durante o envio do pedido e da recuperação de senha */
   .spinner{
     display:inline-block;
     width:14px;
@@ -645,6 +684,17 @@
   .btn[disabled]{
     opacity:0.75;
     cursor:not-allowed;
+  }
+
+  /* Alerta de sucesso (usado na recuperação de senha) */
+  .alert-success{
+    background:var(--green-bg);
+    color:var(--green);
+    border:1px solid var(--green);
+    border-radius:var(--radius-sm);
+    padding:10px 14px;
+    font-size:13px;
+    margin-bottom:14px;
   }
 
   /* Autocomplete: campo de busca de cliente/produto no modal de Novo Pedido */
@@ -688,6 +738,5 @@
     text-align:center;
   }
 </style>
-
 </body>
 </html>
