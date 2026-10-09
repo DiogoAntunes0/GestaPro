@@ -5,6 +5,7 @@ import com.example.CoreCommerce.entity.Pedido;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -67,6 +68,22 @@ public class EmailService {
             e.printStackTrace();
             throw new RuntimeException("Erro ao enviar email");
         }
+        enviadorEmail.send(message);
+    }
+
+    @Async // exige @EnableAsync em alguma classe @Configuration (ou na classe principal)
+    public void ResetarSenhaPorEmail(String to, String link) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("GestaPro - Redefinição de senha");
+        message.setText("""
+                Recebemos um pedido para redefinir sua senha.
+
+                Clique no link abaixo (válido por 30 minutos):
+                %s
+
+                Se você não fez essa solicitação, ignore este e-mail.
+                """.formatted(link));
         enviadorEmail.send(message);
     }
 

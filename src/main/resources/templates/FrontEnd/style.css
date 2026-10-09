@@ -430,3 +430,13 @@
   .empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
   .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.3; }
   .empty-state p { font-size: 14px; }
+  
+  .alert-success{
+  background:var(--green-bg);
+  color:var(--green);
+  border:1px solid var(--green);
+  border-radius:var(--radius-sm);
+  padding:10px 14px;
+  font-size:13px;
+  margin-bottom:14px;
+}
