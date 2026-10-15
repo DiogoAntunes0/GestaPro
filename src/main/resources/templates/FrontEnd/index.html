@@ -70,7 +70,11 @@
           <input type="password" id="loginPassword" placeholder="••••••••">
         </div>
       </div>
-      <div style="text-align:right;margin-top:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+        <label class="remember-me">
+          <input type="checkbox" id="loginRememberMe">
+          Lembrar de mim
+        </label>
         <a onclick="showForgot()" style="cursor:pointer;font-size:12px;color:var(--accent2)">Esqueceu a senha?</a>
       </div>
       <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px;" onclick="doLogin()">Entrar</button>
@@ -695,6 +699,25 @@
     padding:10px 14px;
     font-size:13px;
     margin-bottom:14px;
+  }
+
+  /* Checkbox "Lembrar de mim" (tela de login) */
+  .remember-me{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    color:var(--text2);
+    cursor:pointer;
+    margin:0;
+    user-select:none;
+  }
+  .remember-me input{
+    width:auto;
+    margin:0;
+    padding:0;
+    cursor:pointer;
+    accent-color:var(--accent2);
   }
 
   /* Autocomplete: campo de busca de cliente/produto no modal de Novo Pedido */

@@ -4,8 +4,58 @@
 ══════════════════════════════════════ */
 const API = 'http://localhost:8080';
 
-// Token JWT armazenado após login
-let authToken = localStorage.getItem('orderflow_token') || null;
+// Endpoint que troca o refresh token por um novo JWT.
+// ↓ AJUSTE para o endpoint real do seu backend (espera { refreshToken } no body)
+const REFRESH_ENDPOINT = '/api/auth/refresh';
+
+/* ══════════════════════════════════════
+   SESSÃO (token / refresh token / usuário)
+
+   rememberMe marcado  → localStorage   (persiste ao fechar o navegador)
+   rememberMe desmarcado → sessionStorage (some ao fechar a aba)
+══════════════════════════════════════ */
+const TOKEN_KEY   = 'orderflow_token';
+const REFRESH_KEY = 'orderflow_refresh';
+const USER_KEY    = 'orderflow_user';
+
+// Lê de qualquer um dos dois storages
+function readAuth(key) {
+  return localStorage.getItem(key) || sessionStorage.getItem(key);
+}
+
+// Storage onde a sessão atual está guardada
+function currentStorage() {
+  const naLocal = localStorage.getItem(TOKEN_KEY) || localStorage.getItem(REFRESH_KEY);
+  return naLocal ? localStorage : sessionStorage;
+}
+
+function clearSession() {
+  [TOKEN_KEY, REFRESH_KEY, USER_KEY].forEach(k => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
+}
+
+function saveSession(token, refreshToken, user, remember) {
+  clearSession();
+  const store = remember ? localStorage : sessionStorage;
+  if (token) store.setItem(TOKEN_KEY, token);
+  if (remember && refreshToken) store.setItem(REFRESH_KEY, refreshToken);
+  store.setItem(USER_KEY, JSON.stringify(user));
+}
+
+// Aceita variações de nome de campo vindas do TokenResponseDTO
+function extractToken(data)   { return data?.token || data?.accessToken || data?.jwt || null; }
+function extractRefresh(data) { return data?.refreshToken || data?.refreshTokenString || null; }
+
+// Remove tokens do objeto antes de guardar como "usuário"
+function sanitizeUser(data) {
+  const { token, accessToken, jwt, refreshToken, refreshTokenString, ...rest } = data || {};
+  return rest;
+}
+
+// Token JWT em memória (carregado do storage, se existir)
+let authToken = readAuth(TOKEN_KEY) || null;
 
 // Estado local (cache dos dados da API)
 let state = {
@@ -55,25 +105,76 @@ const ENDPOINTS_LISTAR = {
 };
 
 /* ══════════════════════════════════════
+   REFRESH TOKEN
+   Troca o refresh token por um novo JWT.
+   Chamadas simultâneas compartilham a mesma requisição.
+══════════════════════════════════════ */
+let refreshPromise = null;
+
+function refreshAccessToken() {
+  if (refreshPromise) return refreshPromise;
+
+  const refreshToken = readAuth(REFRESH_KEY);
+  if (!refreshToken) return Promise.resolve(false);
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API}${REFRESH_ENDPOINT}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken })
+      });
+      if (!res.ok) return false;
+
+      const data = await res.json();
+      const novoToken = extractToken(data);
+      if (!novoToken) return false;
+
+      const store = currentStorage();
+      store.setItem(TOKEN_KEY, novoToken);
+      const novoRefresh = extractRefresh(data);
+      if (novoRefresh) store.setItem(REFRESH_KEY, novoRefresh);
+
+      authToken = novoToken;
+      return true;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+/* ══════════════════════════════════════
    HELPER: fetch com autenticação
 ══════════════════════════════════════ */
-async function apiFetch(path, options = {}) {
-  // 1. Busca o token mais recente do localStorage
-  const token = localStorage.getItem('orderflow_token') || authToken;
+async function apiFetch(path, options = {}, _retry = false) {
+  // Rotas de autenticação (login/registro/refresh) não passam pela lógica de "sessão expirada"
+  const isAuthPath = path.startsWith('/api/auth/');
+
+  // 1. Busca o token mais recente (localStorage ou sessionStorage)
+  const token = readAuth(TOKEN_KEY) || authToken;
 
   // 2. Prepara os cabeçalhos
   const headers = { 'Content-Type': 'application/json', ...options.headers };
 
   // 3. Se houver token, adiciona no formato Bearer
-  if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+  if (token && !isAuthPath) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   // 4. Dispara a requisição
   const res = await fetch(`${API}${path}`, { ...options, headers });
 
-  // 5. Se o Spring Security barrar (401 ou 403), desloga o usuário
-  if (res.status === 401 || res.status === 403) {
+  // 5. Se o Spring Security barrar (401 ou 403): tenta renovar com o refresh token;
+  //    se não der, desloga o usuário
+  if (!isAuthPath && (res.status === 401 || res.status === 403)) {
+    if (!_retry && readAuth(REFRESH_KEY)) {
+      const renovou = await refreshAccessToken();
+      if (renovou) return apiFetch(path, options, true);
+    }
     doLogout();
     throw new Error('Sessão expirada. Faça login novamente.');
   }
@@ -107,9 +208,18 @@ function limparCPF(valor) {
   return (valor || '').replace(/\D/g, ''); // remove tudo que não é número
 }
 
+// Guarda a sessão a partir da resposta do backend (TokenResponseDTO)
+function establishSession(data, remember) {
+  const token   = extractToken(data);
+  const refresh = remember ? extractRefresh(data) : null;
+  authToken = token;
+  saveSession(token, refresh, sanitizeUser(data), remember);
+}
+
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const senha = document.getElementById('loginPassword').value;
+  const rememberMe = document.getElementById('loginRememberMe').checked;
   const errEl = document.getElementById('loginError');
   errEl.innerHTML = '';
 
@@ -119,12 +229,13 @@ async function doLogin() {
   }
 
   try {
-    const user = await apiFetch('/api/auth/login', {
+    const data = await apiFetch('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, senha })
+      body: JSON.stringify({ email, senha, rememberMe })
     });
 
-    loginSuccess(user);
+    establishSession(data, rememberMe);
+    loginSuccess(data);
   } catch (err) {
     errEl.innerHTML = `<div class="alert alert-error">${err.message || 'E-mail ou senha incorretos.'}</div>`;
   }
@@ -153,25 +264,22 @@ async function doRegister() {
   }
 
   try {
-    const user = await apiFetch('/api/auth/register', {
+    const data = await apiFetch('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ nome, email, cpf, senha })
     });
 
-    loginSuccess(user);
+    // Cadastro novo: sessão só dura enquanto a aba estiver aberta
+    establishSession(data, false);
+    loginSuccess(data);
   } catch (err) {
     errEl.innerHTML = `<div class="alert alert-error">${err.message || 'Erro ao criar conta.'}</div>`;
   }
 }
 
-function loginSuccess(user) {
-  authToken = user.token || user.jwt || authToken;
-  if (authToken) {
-    localStorage.setItem('orderflow_token', authToken);
-  }
-
+// opts.silent = true → não mostra o toast de boas-vindas (usado ao restaurar sessão)
+function loginSuccess(user, opts = {}) {
   state.currentUser = user;
-  localStorage.setItem('orderflow_user', JSON.stringify(user));
   document.getElementById('authScreen').classList.add('hidden');
   document.getElementById('mainApp').classList.remove('hidden');
 
@@ -181,7 +289,7 @@ function loginSuccess(user) {
   document.getElementById('userNameDisplay').textContent = nome;
 
   loadAll();
-  showToast('success', `Bem-vindo, ${nome.split(' ')[0]}! 👋`);
+  if (!opts.silent) showToast('success', `Bem-vindo, ${nome.split(' ')[0]}! 👋`);
 }
 
 function doLogout() {
@@ -190,24 +298,24 @@ function doLogout() {
   state.clientes = [];
   state.produtos = [];
   state.pedidos = [];
-  
+
   paginacao.clientes.pagina = 0;
   paginacao.produtos.pagina = 0;
   paginacao.pedidos.pagina = 0;
-  
+
   produtoBuscaAtiva = false;
   produtoSearchTermoAtual = '';
   clienteBuscaAtiva = false;
   clienteSearchTermoAtual = '';
   pedidoBuscaAtiva = false;
   pedidoSearchTermoAtual = '';
-  
-  localStorage.removeItem('orderflow_token');
-  localStorage.removeItem('orderflow_user');
+
+  clearSession();
   document.getElementById('mainApp').classList.add('hidden');
   document.getElementById('authScreen').classList.remove('hidden');
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPassword').value = '';
+  document.getElementById('loginRememberMe').checked = false;
   showLogin();
 }
 
@@ -296,7 +404,7 @@ async function carregarBuscaClientes() {
       p.totalPaginas = 1;
       atualizarControlesPaginacao('clientes', { number: 0, totalPages: 1, first: true, last: true });
     }
-    
+
     const semResultado = document.getElementById('semResultadoClientes');
     if (semResultado) semResultado.classList.toggle('hidden', conteudo.length > 0);
   } catch (err) {
@@ -345,10 +453,10 @@ function atualizarControlesPaginacao(entidade, dados) {
 /* ── Componente de paginação (renderizado dinamicamente) ── */
 function renderPaginacao(entidade) {
   const container = document.getElementById(`paginacao-${entidade}`);
-  if (!container) return; 
+  if (!container) return;
 
   const p = paginacao[entidade];
-  const paginaAtual  = p.pagina;       
+  const paginaAtual  = p.pagina;
   const totalPaginas = p.totalPaginas || 1;
 
   if (totalPaginas <= 1) {
@@ -386,7 +494,7 @@ function renderPaginacao(entidade) {
 }
 
 function gerarRangePaginas(atual, total) {
-  const janela = 1; 
+  const janela = 1;
   const paginas = [];
 
   for (let i = 0; i < total; i++) {
@@ -407,7 +515,7 @@ async function irParaPagina(entidade, numeroPagina) {
   if (numeroPagina === p.pagina || numeroPagina < 0 || numeroPagina >= p.totalPaginas) return;
 
   p.pagina = numeroPagina;
-  
+
   if (entidade === 'produtos' && produtoBuscaAtiva) {
     await carregarBuscaProdutos();
   } else if (entidade === 'clientes' && clienteBuscaAtiva) {
@@ -427,7 +535,7 @@ async function mudarPagina(entidade, direcao) {
   if (novaPagina < 0 || novaPagina >= p.totalPaginas) return;
 
   p.pagina = novaPagina;
-  
+
   if (entidade === 'produtos' && produtoBuscaAtiva) {
     await carregarBuscaProdutos();
   } else if (entidade === 'clientes' && clienteBuscaAtiva) {
@@ -580,7 +688,7 @@ function maskCEP(el) {
 
 async function buscarCEP(el) {
   const cepLimpo = el.value.replace(/\D/g, '');
-  if (cepLimpo.length !== 8) return; 
+  if (cepLimpo.length !== 8) return;
 
   el.disabled = true;
 
@@ -607,7 +715,7 @@ function preencherEnderecoCliente(dados) {
     cliLogradouro: dados.logradouro,
     cliComplemento: dados.complemento,
     cliBairro: dados.bairro,
-    cliLocalidade: dados.localidade, 
+    cliLocalidade: dados.localidade,
     cliUf: dados.uf,
     cliEstado: dados.estado,
     cliRegiao: dados.regiao
@@ -641,7 +749,7 @@ function toggleTipoCliente(tipo, el) {
   const docLabel  = document.getElementById('cliDocLabel');
   const docInput  = document.getElementById('cliDocumento');
 
-  docInput.value = ''; 
+  docInput.value = '';
 
   if (tipo === 'CNPJ') {
     nomeLabel.textContent = 'Nome da empresa/Fantasia';
@@ -675,7 +783,7 @@ function resetClienteForm() {
 async function criarCliente() {
   const nome      = document.getElementById('cliNome').value.trim();
   const email     = document.getElementById('cliEmail').value.trim();
-  const documento = limparCPF(document.getElementById('cliDocumento').value); 
+  const documento = limparCPF(document.getElementById('cliDocumento').value);
 
   const endereco = {
     cep: document.getElementById('cliCep').value.trim(),
@@ -710,7 +818,7 @@ async function criarCliente() {
     });
 
     paginacao.clientes.pagina = 0;
-    
+
     if (clienteBuscaAtiva) {
       await carregarBuscaClientes();
     } else {
@@ -811,7 +919,7 @@ async function executarRemoverCliente(id) {
     if (state.clientes.length === 1 && paginacao.clientes.pagina > 0) {
       paginacao.clientes.pagina -= 1;
     }
-    
+
     if (clienteBuscaAtiva) {
       await carregarBuscaClientes();
     } else {
@@ -846,7 +954,7 @@ async function executarBuscaCliente(termoBruto) {
 
   clienteBuscaAtiva = true;
   clienteSearchTermoAtual = termo;
-  paginacao.clientes.pagina = 0; 
+  paginacao.clientes.pagina = 0;
   await carregarBuscaClientes();
   rerenderTabela('clientes');
 }
@@ -1021,7 +1129,7 @@ async function executarBuscaProduto(termoBruto) {
 
   produtoBuscaAtiva = true;
   produtoSearchTermoAtual = termo;
-  paginacao.produtos.pagina = 0; 
+  paginacao.produtos.pagina = 0;
   await carregarBuscaProdutos();
   rerenderTabela('produtos');
 }
@@ -1060,7 +1168,7 @@ async function executarBuscaPedido(termoBruto) {
 
   pedidoBuscaAtiva = true;
   pedidoSearchTermoAtual = termo;
-  paginacao.pedidos.pagina = 0; 
+  paginacao.pedidos.pagina = 0;
   await carregarBuscaPedidos();
   rerenderTabela('pedidos');
 }
@@ -1268,7 +1376,7 @@ function removeCartItem(i) { state.cart.splice(i, 1); renderCart(); }
 let criandoPedido = false;
 
 async function criarPedido() {
-  if (criandoPedido) return; 
+  if (criandoPedido) return;
 
   const clienteId = parseInt(document.getElementById('pedidoClienteId').value);
   if (!clienteId) { showToast('error', 'Selecione um cliente na lista de sugestões'); return; }
@@ -1308,7 +1416,7 @@ async function criarPedido() {
     ]);
 
     state.cart = [];
-    criandoPedido = false; 
+    criandoPedido = false;
     closeModal('modalNovoPedido');
     renderAll();
     const emailCliente = cliente?.email || '';
@@ -1341,7 +1449,7 @@ function confirmarStatusPedido(pedidoId, novoStatus, selectEl) {
     `Deseja realmente alterar o status do pedido #${String(pedidoId).slice(-4)} para "${LABEL_STATUS[novoStatus] || novoStatus}"? Depois de confirmado, o status não poderá ser alterado novamente.`,
     () => executarAtualizarStatus(pedidoId, novoStatus, selectEl),
     'primary',
-    () => { selectEl.value = statusAnterior; } 
+    () => { selectEl.value = statusAnterior; }
   );
 }
 
@@ -1529,19 +1637,25 @@ function renderAll() {
 }
 
 /* ══════════════════════════════════════
-   INIT — verifica se já está logado
+   INIT — restaura a sessão (localStorage ou sessionStorage)
+   Se o JWT sumiu/expirou mas existe refresh token ("Lembrar de mim"),
+   renova o JWT antes de entrar.
 ══════════════════════════════════════ */
 (async () => {
-  const savedUser = localStorage.getItem('orderflow_user');
-  const savedToken = localStorage.getItem('orderflow_token');
+  const savedUser    = readAuth(USER_KEY);
+  const savedToken   = readAuth(TOKEN_KEY);
+  const savedRefresh = readAuth(REFRESH_KEY);
 
-  if (savedToken && savedUser) {
-    try {
-      authToken = savedToken;
-      const user = JSON.parse(savedUser);
-      loginSuccess(user);
-    } catch (e) {
-      doLogout();
+  if (!savedUser || (!savedToken && !savedRefresh)) return;
+
+  try {
+    if (!savedToken && savedRefresh) {
+      const ok = await refreshAccessToken();
+      if (!ok) { doLogout(); return; }
     }
+    authToken = readAuth(TOKEN_KEY);
+    loginSuccess(JSON.parse(savedUser), { silent: true });
+  } catch (e) {
+    doLogout();
   }
 })();

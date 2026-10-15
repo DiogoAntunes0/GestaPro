@@ -2,6 +2,7 @@ package com.example.CoreCommerce.service;
 
 import com.example.CoreCommerce.entity.ResetarSenhaToken;
 import com.example.CoreCommerce.entity.Usuario;
+import com.example.CoreCommerce.exception.SenhaNaoEncontrada;
 import com.example.CoreCommerce.repository.ResetarSenhaTokenRepository;
 import com.example.CoreCommerce.repository.UsuarioRepository;
 import jakarta.transaction.Transactional;

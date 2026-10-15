@@ -1,4 +1,4 @@
 package com.example.CoreCommerce.dto;
 
-public record TokenResponseDTO(String token, String email) {
+public record TokenResponseDTO(String token, String refreshToken, String email) {
 }
