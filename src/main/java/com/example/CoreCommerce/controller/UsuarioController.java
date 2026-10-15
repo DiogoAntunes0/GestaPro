@@ -2,6 +2,7 @@ package com.example.CoreCommerce.controller;
 import com.example.CoreCommerce.security.JwtService;
 import com.example.CoreCommerce.dto.TokenResponseDTO;
 import com.example.CoreCommerce.dto.UsuarioDTO;
+import com.example.CoreCommerce.service.RefreshTokenService;
 import com.example.CoreCommerce.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,9 @@ public class UsuarioController {
     private AuthenticationManager authenticationManager;
 
     @Autowired
+    private RefreshTokenService refreshTokenService;
+
+    @Autowired
     private JwtService jwtService;
 
     @PostMapping("/auth/register")
@@ -36,8 +40,14 @@ public class UsuarioController {
         UsuarioDTO usuario = usuarioService.logar(usuarioDTO);
 
         String tokenJwt = jwtService.gerarToken(usuario.email());
+        String refreshTokenString = null;
 
-        return ResponseEntity.ok(new TokenResponseDTO(tokenJwt, usuarioDTO.email()));
+        if(usuarioDTO.rememberMe() != null && usuarioDTO.rememberMe()) {
+            RefreshToken refreshToken = refreshTokenService.criarRefreshToken(usuario.email());
+            refreshTokenString = refreshToken.getToken();
+        }
+
+        return ResponseEntity.ok(new TokenResponseDTO(tokenJwt, refreshTokenString, usuarioDTO.email()));
 
   }
 

@@ -94,4 +94,5 @@ public class Usuario {
     public void setNovaSenha(String novaSenha){
         this.senha = novaSenha;
     }
+
 }

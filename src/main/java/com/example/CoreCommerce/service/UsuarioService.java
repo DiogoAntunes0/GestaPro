@@ -46,6 +46,7 @@ public class UsuarioService implements UserDetailsService {
         return new UsuarioDTO(usuarioSalvo.getNome(),
                 usuarioSalvo.getEmail(),
                 usuarioSalvo.getCpf(),
+                null,
                 null
         );
     }
@@ -66,7 +67,7 @@ public class UsuarioService implements UserDetailsService {
                   usuario.getNome(),
                   usuario.getEmail(),
                   usuario.getCpf(),
-                  null
+                  null,null
           );
     }
 
