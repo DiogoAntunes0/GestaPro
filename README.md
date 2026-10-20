@@ -1,170 +1,69 @@
-# GestaPro — API de Gestão Comercial
+GestaPro — API de Gestão Comercial
+O GestaPro é uma API REST desenvolvida com Java e Spring Boot para centralizar operações comerciais, reunindo o gerenciamento de clientes, produtos e pedidos em uma aplicação backend.
 
-O **GestaPro** é uma API REST desenvolvida com Java e Spring Boot para gerenciamento de operações comerciais. O projeto centraliza o cadastro de clientes, o catálogo de produtos e o processamento de pedidos, aplicando regras de negócio, validações e persistência em banco de dados relacional.
+O projeto foi criado para aplicar conceitos de desenvolvimento de software em um cenário próximo ao ambiente empresarial, com foco em regras de negócio, segurança, persistência de dados e organização do código.
+🎯 Problema que resolve
+O controle de clientes, produtos e pedidos em ferramentas separadas ou processos manuais pode gerar informações inconsistentes, retrabalho e dificuldade no acompanhamento das operações.
 
-O objetivo é consolidar conhecimentos de desenvolvimento backend por meio da construção de uma aplicação organizada em camadas, com autenticação, comunicação por e-mail e funcionalidades voltadas a um fluxo comercial real.
-
-## 🚀 Funcionalidades implementadas
-
-### 👥 Gerenciamento de clientes
-
+O GestaPro propõe centralizar essas informações e automatizar etapas do fluxo comercial, como a associação de produtos aos pedidos, o cálculo de valores e a comunicação por e-mail com os clientes.
+🚀 Funcionalidades implementadas
+👥 Clientes
 - Cadastro, consulta e atualização de clientes.
 - Validação dos dados recebidos pela API.
 - Persistência das informações no banco de dados.
-
-### 📦 Gerenciamento de produtos
-
+📦 Produtos
 - Cadastro e gerenciamento do catálogo de produtos.
 - Controle de preços e informações dos produtos.
-- Validações para manter a consistência dos dados.
-
-### 🛒 Processamento de pedidos
-
+- Validações para preservar a consistência dos dados.
+🛒 Pedidos
 - Criação de pedidos vinculados a clientes.
 - Associação de produtos aos pedidos.
-- Cálculo automatizado dos valores dos pedidos.
-- Aplicação de regras de negócio e validações durante o processamento.
-- Envio de uma cópia do pedido para o e-mail do cliente.
-
-### 🔐 Autenticação e recuperação de senha
-
-- Implementação de autenticação utilizando Spring Security.
+- Cálculo automático dos valores dos pedidos.
+- Aplicação de validações e regras de negócio durante o processamento.
+- Envio de uma cópia do pedido ao e-mail do cliente.
+🔐 Autenticação e recuperação de senha
+- Autenticação e proteção de recursos com Spring Security.
 - Geração e retorno de token de autenticação.
-- Fluxo de redefinição de senha por e-mail.
-- Envio das instruções necessárias para recuperação do acesso.
+- Recuperação de acesso por meio de redefinição de senha enviada por e-mail.
+📧 Comunicação por e-mail
+- Envio de mensagens para redefinição de senha.
+- Envio de cópia dos pedidos aos clientes.
+🛠️ Tecnologias utilizadas
+Tecnologia	Aplicação no projeto
+Java 17+	Desenvolvimento da aplicação e das regras de negócio
+Spring Boot / Spring Web	Estrutura da aplicação e endpoints REST
+Spring Data JPA / Hibernate	Mapeamento e persistência de dados
+PostgreSQL	Banco de dados relacional
+Spring Security	Autenticação e proteção de recursos
+Maven	Gerenciamento de dependências e build
+Java Records	Representação de DTOs, quando aplicável
+Git / GitHub	Versionamento do código
+GitHub Projects	Planejamento e acompanhamento das atividades
 
-### 📧 Integração com serviço de e-mail
 
-- Envio de mensagens para recuperação de senha.
-- Envio de cópia dos pedidos aos respectivos clientes.
+🏗️ Arquitetura
+A API segue uma arquitetura em camadas, com responsabilidades separadas para facilitar a manutenção e a evolução do sistema:
+- Controller: recebe as requisições HTTP e retorna as respostas da API.
+- Service: concentra as regras de negócio e as validações do fluxo comercial.
+- Repository: realiza o acesso e a persistência dos dados.
+- Entity: representa as entidades de domínio persistidas.
+- DTO: define os dados utilizados na comunicação entre a API e seus consumidores.
+- Security / Config: reúne componentes de segurança e configurações da aplicação.
+Essa organização permite evoluir as funcionalidades sem concentrar toda a lógica nos endpoints.
 
-## 🛠️ Tecnologias utilizadas
+📚 Documentação técnica
+A documentação detalhada está em preparação e será disponibilizada separadamente, incluindo instruções de configuração e execução, endpoints, exemplos de requisições e respostas e fluxos de autenticação.
+Assim que estiver publicada, o link para a documentação será adicionado nesta seção.
 
-- **Java 17+** — linguagem de programação.
-- **Spring Boot** — estrutura principal da aplicação.
-- **Spring Web** — desenvolvimento de endpoints REST.
-- **Spring Data JPA** — persistência e acesso aos dados.
-- **Hibernate** — implementação ORM.
-- **Spring Security** — autenticação e proteção de recursos.
-- **PostgreSQL** — banco de dados relacional.
-- **Maven** — gerenciamento de dependências e build.
-- **Java Records** — representação de DTOs quando aplicável.
-- **Git e GitHub** — versionamento do código.
-- **GitHub Projects** — organização e acompanhamento das atividades.
+🗺️ Roadmap
+As próximas melhorias planejadas são:
+- [ ] Testes automatizados: testes unitários e de integração para regras de negócio e persistência.
+- [ ] Docker: containerização da API e preparação do ambiente com PostgreSQL.
+- [ ] CI/CD: automação do build e da execução de testes.
+- [ ] Relatórios de vendas: consultas e consolidação dos resultados comerciais.
+- [ ] Multi-tenancy: isolamento de dados por empresa, com estudo de separação por schemas no PostgreSQL.
+- [ ] Deploy em nuvem: preparação da aplicação para implantação na AWS.
+💡 Aprendizados e objetivos
+O GestaPro é um projeto de desenvolvimento backend voltado à aplicação prática de conceitos de orientação a objetos, APIs REST, arquitetura em camadas, regras de negócio, segurança, banco de dados relacional e integração por e-mail.
 
-## 🏗️ Arquitetura e organização
-
-A aplicação utiliza uma arquitetura em camadas para separar responsabilidades e facilitar a manutenção e a evolução do código.
-
-```text
-com.gestapro.api
-├── entity/       # Entidades de negócio
-├── dto/          # Objetos de transferência de dados
-├── repository/   # Acesso e persistência de dados
-├── service/      # Regras de negócio
-├── controller/   # Endpoints REST
-├── config/       # Configurações da aplicação
-└── security/     # Componentes de segurança
-```
-
-A separação das responsabilidades busca manter os endpoints focados na comunicação HTTP, os serviços responsáveis pelas regras de negócio e os repositórios encarregados do acesso aos dados.
-
-A estrutura apresentada representa a organização lógica da aplicação; os pacotes devem ser conferidos com a versão atual do código-fonte.
-
-## ⚙️ Como executar o projeto
-
-### Pré-requisitos
-
-- Java 17 ou superior.
-- PostgreSQL configurado.
-- Maven ou utilização do Maven Wrapper incluído no projeto.
-- Acesso a um serviço SMTP para testar as funcionalidades de e-mail.
-
-### 1. Clone o repositório
-
-```bash
-git clone https://github.com/DiogoAntunes0/GestaPro.git
-cd GestaPro
-```
-
-### 2. Configure o banco de dados
-
-Crie um banco de dados PostgreSQL para a aplicação e configure as propriedades de conexão no ambiente de execução.
-
-Exemplo de configuração:
-
-```properties
-spring.datasource.url=${DB_URL}
-spring.datasource.username=${DB_USERNAME}
-spring.datasource.password=${DB_PASSWORD}
-```
-
-Os nomes das variáveis acima são exemplos. Configure-as no ambiente e ajuste as propriedades conforme a configuração utilizada no projeto.
-
-### 3. Configure o serviço de e-mail
-
-Configure as propriedades SMTP necessárias para o envio de mensagens, utilizando variáveis de ambiente para credenciais e informações sensíveis.
-
-Exemplo para um serviço SMTP compatível com Spring Boot:
-
-```properties
-spring.mail.host=${MAIL_HOST}
-spring.mail.port=${MAIL_PORT}
-spring.mail.username=${MAIL_USERNAME}
-spring.mail.password=${MAIL_PASSWORD}
-```
-
-As propriedades adicionais de autenticação, TLS e remetente devem seguir a configuração do provedor de e-mail e a implementação da aplicação.
-
-**Importante:** não versione senhas, tokens, chaves ou credenciais reais no repositório.
-
-### 4. Execute a aplicação
-
-No Windows, utilizando o Maven Wrapper:
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-No Linux ou macOS:
-
-```bash
-./mvnw spring-boot:run
-```
-
-Alternativamente, caso o Maven esteja instalado:
-
-```bash
-mvn spring-boot:run
-```
-
-A aplicação utiliza a porta 8080 por padrão, salvo configuração diferente.
-
-## 📋 Organização do desenvolvimento
-
-O desenvolvimento é acompanhado por meio do GitHub Projects, permitindo organizar tarefas, acompanhar o progresso e planejar as próximas melhorias.
-
-🔗 **Repositório:** [https://github.com/DiogoAntunes0/GestaPro](https://github.com/DiogoAntunes0/GestaPro)
-
-## 🎯 Próximos passos — Roadmap
-
-As próximas etapas estão voltadas à evolução da aplicação, à automação do desenvolvimento e à preparação para implantação.
-
-- [ ] **Testes automatizados:** criar testes unitários e de integração para validar regras de negócio, autenticação, processamento de pedidos e persistência.
-- [ ] **Docker:** containerizar a aplicação e preparar um ambiente reproduzível para execução com PostgreSQL.
-- [ ] **Pipeline CI/CD:** automatizar a compilação e a execução dos testes a cada alteração no repositório.
-- [ ] **Relatórios de vendas:** desenvolver consultas e relatórios para consolidar pedidos e facilitar a análise dos resultados comerciais.
-- [ ] **Multi-tenancy:** implementar o isolamento de dados entre empresas utilizando schemas no PostgreSQL, com validação das regras de acesso e separação dos dados.
-- [ ] **Implantação na AWS:** preparar a publicação da aplicação em ambiente de nuvem, com configuração segura, logs e monitoramento.
-
-## 📚 Objetivo do projeto
-
-O GestaPro é um projeto de estudo e evolução técnica voltado ao desenvolvimento backend com Java e Spring Boot.
-
-Por meio dele, busco aprofundar meus conhecimentos em arquitetura de software, regras de negócio, segurança, persistência de dados e integração entre sistemas, evoluindo gradualmente para práticas de testes, automação e implantação.
-
----
-
-**Desenvolvido por Diogo Antunes**
-
-[GitHub — DiogoAntunes0](https://github.com/DiogoAntunes0)
+Além das funcionalidades comerciais, o projeto serve como base para aprofundar conhecimentos em testes, automação e implantação de aplicações Java.
