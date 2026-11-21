@@ -8,6 +8,7 @@ public class CoreCommerceApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(CoreCommerceApplication.class, args);
+
 	}
 
 }

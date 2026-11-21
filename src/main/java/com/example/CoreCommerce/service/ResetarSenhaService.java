@@ -54,7 +54,7 @@ public class ResetarSenhaService {
                 token.setExpiresAt(Instant.now().plus(TOKEN_TTL));
                 tokenRepository.save(token);
 
-                String link = "http://127.0.0.1:5500/src/main/resources/templates/FrontEnd/" + "?token=" + rawToken;
+                String link = "http://127.0.0.1:5500/GestaPro/frontEnd/index.html" + "?token=" + rawToken;
                 emailService.ResetarSenhaPorEmail(usuario.getEmail(), link);
             };
 
