@@ -104,4 +104,12 @@ public class Produto {
     public String getNome() {
         return getNomeProduto();
     }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public void setPreco(Double preco) {
+        this.preco = preco;
+    }
 }

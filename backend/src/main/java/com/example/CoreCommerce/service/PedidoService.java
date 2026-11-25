@@ -43,7 +43,12 @@ public class PedidoService {
             Produto produto = produtoRepository.findById(itemPedidoDTO.produtoId())
                     .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
 
-            produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - itemPedidoDTO.quantidade());
+            if (produto.getQuantidadeEstoque() < itemPedidoDTO.quantidade()) {
+                throw new RuntimeException("Estoque insuficiente para: " + produto.getNome());
+            } else {
+                produto.setQuantidadeEstoque(produto.getQuantidadeEstoque() - itemPedidoDTO.quantidade());
+            }
+
             produtoRepository.save(produto);
 
             Double precoVenda = produto.getPreco();
