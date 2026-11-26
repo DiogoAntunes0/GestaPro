@@ -87,7 +87,9 @@ class PedidoControllerTest {
     }
 
     @Test
-    void deveListarPedidosComPaginacaoPadrao() throws Exception {
+    @DisplayName("Deve listar todos pedidos paginados")
+    @WithMockUser(roles = "ADMIN")
+    void ListarPedidosComPaginacaoPadrao() throws Exception {
         when(pedidoService.listarTodosPedidos(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
 
@@ -95,7 +97,6 @@ class PedidoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
 
-        // confere que page=0 e size=10 (os defaults) chegaram ao service
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
         verify(pedidoService).listarTodosPedidos(captor.capture());
         assertThat(captor.getValue().getPageNumber()).isEqualTo(0);
@@ -103,7 +104,9 @@ class PedidoControllerTest {
     }
 
     @Test
-    void deveAtualizarStatusDoPedido() throws Exception {
+    @DisplayName("Deve atualizar os status dos pedidos")
+    @WithMockUser(roles = "ADMIN")
+    void AtualizarStatusDoPedido() throws Exception {
         StatusPedidoDTO dto = new StatusPedidoDTO(1L, StatusPedido.PAGO); // ajuste ao seu enum
 
         when(pedidoService.atualizarStatusPedido(eq(1L), any(StatusPedidoDTO.class)))
@@ -118,19 +121,23 @@ class PedidoControllerTest {
     }
 
     @Test
-    void deveBuscarPedidosPorNome() throws Exception {
-        when(pedidoService.buscarPedidos(eq("Maria"), isNull(), isNull(), any(Pageable.class)))
+    @DisplayName("Deve buscar pedidos por nome")
+    @WithMockUser(roles = "ADMIN")
+    void BuscarPedidosPorNome() throws Exception {
+        when(pedidoService.buscarPedidos(eq("Diogo"), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
 
-        mockMvc.perform(get("/api/pedidos/buscar").param("nome", "Maria"))
+        mockMvc.perform(get("/api/pedidos/buscar").param("nome", "Diogo"))
                 .andExpect(status().isOk());
 
-        verify(pedidoService).buscarPedidos(eq("Maria"), isNull(), isNull(), any(Pageable.class));
+        verify(pedidoService).buscarPedidos(eq("Diogo"), isNull(), isNull(), any(Pageable.class));
     }
 
     @Test
-    void deveRetornar400QuandoJsonInvalido() throws Exception {
+    @WithMockUser(roles = "ADMIN")
+    void Retornar400QuandoJsonInvalido() throws Exception {
         mockMvc.perform(post("/api/pedidos")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ json quebrado"))
                 .andExpect(status().isBadRequest());
