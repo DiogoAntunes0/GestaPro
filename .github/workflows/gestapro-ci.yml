@@ -1,0 +1,43 @@
+name: Pipeline CI - GestaPro Backend
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+          cache-dependency-path: backend/pom.xml
+
+      - name: Garantir permissão de execução no Maven Wrapper
+        run: chmod +x ./mvnw
+
+      - name: Executar Esteira via Makefile (Testes, Build e Imagem)
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SPRING_PROFILES_ACTIVE: test
+        run: make ci
+
+      - name: Parar e remover contêiner ao finalizar
+        if: always()
+        run: make down
